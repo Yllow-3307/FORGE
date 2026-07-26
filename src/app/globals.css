@@ -83,8 +83,8 @@
   );
 
   --text: #182126;
-  --text-muted: #4d5860;
-  --text-faint: #7c8791;
+  --text-muted: #3a4550;
+  --text-faint: #5c6870;
 
   --border: rgb(255 255 255 / 0.48);
   --border-strong: rgb(255 255 255 / 0.75);
@@ -98,7 +98,7 @@
   --accent-soft: rgb(233 142 121 / 0.24);
   --accent-soft-fort: rgb(233 142 121 / 0.38);
   --accent-contrast: #ffffff;
-  --anneau-focus: rgb(184 91 69 / 0.24);
+  --anneau-focus: rgb(184 91 69 / 0.45);
 
   /* Contrepoint froid : équilibre les tons chauds, jamais porteur de sens. */
   --eau: #4d9fb0;
@@ -178,7 +178,7 @@
   --accent-soft: rgb(241 160 141 / 0.16);
   --accent-soft-fort: rgb(241 160 141 / 0.26);
   --accent-contrast: #221512;
-  --anneau-focus: rgb(241 160 141 / 0.28);
+  --anneau-focus: rgb(241 160 141 / 0.45);
 
   --eau: #86d7e0;
   --eau-clair: #b2e6ec;
