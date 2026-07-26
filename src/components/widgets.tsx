@@ -14,7 +14,8 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Carte, GrandChiffre, survolCarte, cx } from "./ui";
+import { Carte, GrandChiffre, cx } from "./ui";
+import { useSurvolCarte } from "@/hooks/useCoarsePointer";
 import { Bouteille } from "./bouteille";
 import { useApp } from "@/lib/useApp";
 import { libelleSeance } from "@/lib/useApp";
@@ -102,6 +103,7 @@ function Anneau({
 
 function WidgetLancerSeance({ taille }: { taille: TailleWidget }) {
   const { seancesDuJour, serie } = useApp();
+  const survolCarte = useSurvolCarte();
   const repos = seancesDuJour.length === 0;
   const duree = seancesDuJour.reduce((a, s) => a + s.dureeMin, 0);
 
@@ -211,6 +213,7 @@ function WidgetHydratation({ taille }: { taille: TailleWidget }) {
 
 function WidgetMacros() {
   const { programme, totaux, scores } = useApp();
+  const survolCarte = useSurvolCarte();
   if (!programme) return null;
 
   const n = programme.nutrition;
@@ -302,6 +305,7 @@ function WidgetReussites({ taille }: { taille: TailleWidget }) {
 
 function WidgetPoids({ taille }: { taille: TailleWidget }) {
   const { fiche, profil } = useApp();
+  const survolCarte = useSurvolCarte();
   const [mesures, setMesures] = useState<MesurePoids[]>([]);
 
   useEffect(() => {
@@ -401,6 +405,7 @@ function WidgetPoids({ taille }: { taille: TailleWidget }) {
 
 function WidgetProgression({ taille }: { taille: TailleWidget }) {
   const { programme, semaine } = useApp();
+  const survolCarte = useSurvolCarte();
   if (!programme) return null;
 
   const total = programme.meta.dureeCycle;

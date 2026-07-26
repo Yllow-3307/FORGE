@@ -10,13 +10,15 @@
 import { useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bouton, Carte, Vide, cascade, enfantCascade, survolCarte, cx } from "@/components/ui";
+import { Bouton, Carte, Vide, cascade, enfantCascade, cx } from "@/components/ui";
+import { useSurvolCarte } from "@/hooks/useCoarsePointer";
 import { CATALOGUE_WIDGETS, CLASSES_TAILLE, RendreWidget } from "@/components/widgets";
 import { useApp, libelleSeance } from "@/lib/useApp";
 import { majReglages, type TailleWidget, type TypeWidget, type Widget } from "@/lib/suivi";
 
 export default function Accueil() {
   const { chargement, fiche, seancesDuJour, serie, reglages, rafraichir } = useApp();
+  const survolCarte = useSurvolCarte();
   const [edition, setEdition] = useState(false);
 
   const widgets = reglages.widgets;
