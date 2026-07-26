@@ -66,7 +66,7 @@ export default function Accueil() {
     return (
       <Carte>
         <Vide
-          icone="🌿"
+          icone="⚒️"
           titre="Bienvenue"
           texte="Créez votre profil : 18 paramètres suffisent à bâtir un programme complet, calé sur vos vrais horaires et votre matériel."
           action={<Link href="/profil"><Bouton>Créer mon programme</Bouton></Link>}

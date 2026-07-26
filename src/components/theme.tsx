@@ -14,7 +14,7 @@ import { motion } from "framer-motion";
 
 type Theme = "light" | "dark";
 
-export const CLE_THEME = "callisthenic-theme";
+export const CLE_THEME = "forge-theme";
 
 /* ------------------------------------------------------------------ store */
 

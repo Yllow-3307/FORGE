@@ -1,6 +1,6 @@
 {
-  "name": "Callisthenic — Programmes personnalisés",
-  "short_name": "Callisthenic",
+  "name": "FORGE — Entraînement et nutrition sur mesure",
+  "short_name": "FORGE",
   "description": "Callisthénie, endurance, nutrition et hydratation, calés sur vos vrais horaires et votre matériel.",
   "lang": "fr",
   "dir": "ltr",
@@ -10,13 +10,42 @@
   "orientation": "portrait-primary",
   "background_color": "#eceae4",
   "theme_color": "#6b8e4e",
-  "categories": ["health", "fitness", "lifestyle"],
+  "categories": [
+    "health",
+    "fitness",
+    "lifestyle"
+  ],
   "icons": [
-    { "src": "/icones/icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/icones/icone-256.png", "sizes": "256x256", "type": "image/png", "purpose": "any" },
-    { "src": "/icones/icone-384.png", "sizes": "384x384", "type": "image/png", "purpose": "any" },
-    { "src": "/icones/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/icones/icone-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "/icones/icone-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icones/icone-256.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icones/icone-384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icones/icone-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icones/icone-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ],
   "shortcuts": [
     {
@@ -24,21 +53,36 @@
       "short_name": "Séance",
       "description": "Démarrer la séance du jour",
       "url": "/seance",
-      "icons": [{ "src": "/icones/icone-192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icones/icone-192.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
       "name": "Noter un repas",
       "short_name": "Nutrition",
       "description": "Renseigner ce que j'ai mangé",
       "url": "/nutrition",
-      "icons": [{ "src": "/icones/icone-192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icones/icone-192.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
       "name": "Me peser",
       "short_name": "Mesures",
       "description": "Enregistrer une pesée",
       "url": "/mesures",
-      "icons": [{ "src": "/icones/icone-192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icones/icone-192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ]
 }

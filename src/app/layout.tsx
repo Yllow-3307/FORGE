@@ -14,8 +14,8 @@ const geist = Geist({
 
 export const metadata: Metadata = {
   title: {
-    default: "Callisthenic — Programmes personnalisés",
-    template: "%s · Callisthenic",
+    default: "FORGE — Entraînement et nutrition sur mesure",
+    template: "%s · FORGE",
   },
   description:
     "Générateur de programmes de callisthénie, endurance, nutrition et hydratation, "
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "Callisthenic",
+    title: "FORGE",
     statusBarStyle: "default",
   },
   icons: {
@@ -56,7 +56,7 @@ export const viewport: Viewport = {
 const SCRIPT_THEME = `
 (function(){
   try {
-    var t = localStorage.getItem("callisthenic-theme");
+    var t = localStorage.getItem("forge-theme");
     if (!t) t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     if (t === "dark") document.documentElement.classList.add("dark");
   } catch (e) {}

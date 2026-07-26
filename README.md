@@ -1,4 +1,4 @@
-# Callisthenic — application web
+# FORGE — application web
 
 Générateur de programmes personnalisés : **callisthénie/musculation, endurance,
 nutrition et hydratation**, calculés à partir de 18 paramètres (profil, agenda

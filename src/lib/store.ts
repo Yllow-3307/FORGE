@@ -19,13 +19,13 @@ const cache = new Map<string, { brut: string | null; valeur: unknown }>();
 function souscrire(callback: () => void) {
   abonnes.add(callback);
   if (abonnes.size === 1 && typeof window !== "undefined") {
-    window.addEventListener("callisthenic:maj", notifierTous);
+    window.addEventListener("forge:maj", notifierTous);
     window.addEventListener("storage", notifierTous);
   }
   return () => {
     abonnes.delete(callback);
     if (abonnes.size === 0 && typeof window !== "undefined") {
-      window.removeEventListener("callisthenic:maj", notifierTous);
+      window.removeEventListener("forge:maj", notifierTous);
       window.removeEventListener("storage", notifierTous);
     }
   };
@@ -40,7 +40,7 @@ function notifierTous() {
 export function invalider() {
   if (typeof window === "undefined") return;
   cache.clear();
-  window.dispatchEvent(new CustomEvent("callisthenic:maj"));
+  window.dispatchEvent(new CustomEvent("forge:maj"));
 }
 
 /**
@@ -79,6 +79,6 @@ export function useVersionStockage(): number {
 
 let versionCourante = 0;
 if (typeof window !== "undefined") {
-  window.addEventListener("callisthenic:maj", () => { versionCourante += 1; });
+  window.addEventListener("forge:maj", () => { versionCourante += 1; });
   window.addEventListener("storage", () => { versionCourante += 1; });
 }

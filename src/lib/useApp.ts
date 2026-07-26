@@ -5,7 +5,7 @@
  *
  * Regroupe le profil actif, le programme généré, le journal du jour et les
  * réglages. Les composants s'y abonnent et sont notifiés à chaque écriture
- * (événement `callisthenic:maj`), y compris depuis un autre onglet.
+ * (événement `forge:maj`), y compris depuis un autre onglet.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -78,10 +78,10 @@ export function useApp(): EtatApp {
   // Abonnement aux écritures locales (même onglet et autres onglets)
   useEffect(() => {
     const onMaj = () => setVersion((v) => v + 1);
-    window.addEventListener("callisthenic:maj", onMaj);
+    window.addEventListener("forge:maj", onMaj);
     window.addEventListener("storage", onMaj);
     return () => {
-      window.removeEventListener("callisthenic:maj", onMaj);
+      window.removeEventListener("forge:maj", onMaj);
       window.removeEventListener("storage", onMaj);
     };
   }, []);
@@ -106,13 +106,13 @@ export function useApp(): EtatApp {
 
   // Abonnement direct au stockage : la valeur est relue à chaque écriture,
   // sans effet ni rendu intermédiaire.
-  const journal = useStockageLocal<JournalJour[]>("callisthenic:journal", []);
+  const journal = useStockageLocal<JournalJour[]>("forge:journal", []);
   const jour = useMemo(
     () => journal.find((j) => j.date === aujourdhui())
       ?? { date: aujourdhui(), repas: [], hydratationMl: 0, seanceFaite: false },
     [journal],
   );
-  const reglagesStockes = useStockageLocal<Partial<Reglages>>("callisthenic:reglages", {});
+  const reglagesStockes = useStockageLocal<Partial<Reglages>>("forge:reglages", {});
   const reglages = useMemo<Reglages>(
     () => ({ ...REGLAGES_DEFAUT, ...reglagesStockes }),
     [reglagesStockes],

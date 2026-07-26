@@ -65,9 +65,9 @@ export interface Reglages {
 
 /* ------------------------------------------------------------- Constantes */
 
-const CLE_JOURNAL = "callisthenic:journal";
-const CLE_SKILLS = "callisthenic:skills";
-const CLE_REGLAGES = "callisthenic:reglages";
+const CLE_JOURNAL = "forge:journal";
+const CLE_SKILLS = "forge:skills";
+const CLE_REGLAGES = "forge:reglages";
 
 export const WIDGETS_DEFAUT: Widget[] = [
   { id: "w1", type: "lancer_seance", taille: "rectangle" },
@@ -111,7 +111,7 @@ function ecrire<T>(cle: string, valeur: T): void {
   try {
     localStorage.setItem(cle, JSON.stringify(valeur));
     // Prévient les composants abonnés dans le même onglet
-    window.dispatchEvent(new CustomEvent("callisthenic:maj", { detail: cle }));
+    window.dispatchEvent(new CustomEvent("forge:maj", { detail: cle }));
   } catch {
     // Quota dépassé ou navigation privée : on ignore silencieusement.
   }
@@ -391,9 +391,9 @@ export function majReglages(maj: Partial<Reglages>): Reglages {
 export function effacerToutesDonnees(): void {
   if (typeof window === "undefined") return;
   [CLE_JOURNAL, CLE_SKILLS, CLE_REGLAGES,
-    "callisthenic:fiches", "callisthenic:seances", "callisthenic:poids"]
+    "forge:fiches", "forge:seances", "forge:poids"]
     .forEach((c) => localStorage.removeItem(c));
-  window.dispatchEvent(new CustomEvent("callisthenic:maj", { detail: "tout" }));
+  window.dispatchEvent(new CustomEvent("forge:maj", { detail: "tout" }));
 }
 
 export function exporterHistorique(): string {

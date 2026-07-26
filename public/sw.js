@@ -13,7 +13,7 @@
  * disponibles hors ligne sans que le service worker ait à s'en occuper.
  */
 
-const VERSION = "callisthenic-v1";
+const VERSION = "forge-v1";
 const CACHE_COQUILLE = `${VERSION}-coquille`;
 const CACHE_RESSOURCES = `${VERSION}-ressources`;
 

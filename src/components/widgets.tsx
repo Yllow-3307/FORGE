@@ -241,7 +241,7 @@ function WidgetMacros() {
 
 function WidgetReussites({ taille }: { taille: TailleWidget }) {
   const { serie } = useApp();
-  const journal = useStockageLocal<JournalJour[]>("callisthenic:journal", []);
+  const journal = useStockageLocal<JournalJour[]>("forge:journal", []);
   const total = journal.filter((j) => j.seanceFaite).length;
 
   if (taille === "petit") {

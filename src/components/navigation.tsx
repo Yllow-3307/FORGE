@@ -13,6 +13,7 @@ import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { ThemeToggle } from "./theme";
+import { MarqueForge } from "./logo";
 import { cx } from "./ui";
 
 const LIENS_PRINCIPAUX = [
@@ -47,14 +48,8 @@ export function Navigation() {
       {/* ---------- En-tête (écrans moyens et plus) ---------- */}
       <header className="sticky top-0 z-40 hidden px-4 pt-4 md:block">
         <nav className="glass-strong mx-auto flex max-w-6xl items-center gap-1 rounded-pill px-3 py-2">
-          <Link href="/" className="flex items-center gap-2.5 pl-2 pr-3">
-            <span
-              aria-hidden
-              className="grid h-8 w-8 place-items-center rounded-xl bg-[var(--accent)] text-base"
-            >
-              🌿
-            </span>
-            <span className="text-[0.95rem] font-bold tracking-tight">Callisthenic</span>
+          <Link href="/" className="pl-2 pr-3">
+            <MarqueForge />
           </Link>
 
           <div className="flex flex-1 items-center gap-0.5">
@@ -102,14 +97,8 @@ export function Navigation() {
 
       {/* ---------- Barre supérieure mobile ---------- */}
       <header className="sticky top-0 z-40 flex items-center justify-between px-4 py-3 md:hidden">
-        <Link href="/" className="flex items-center gap-2">
-          <span
-            aria-hidden
-            className="grid h-8 w-8 place-items-center rounded-xl bg-[var(--accent)] text-base"
-          >
-            🌿
-          </span>
-          <span className="font-bold tracking-tight">Callisthenic</span>
+        <Link href="/">
+          <MarqueForge />
         </Link>
         <ThemeToggle />
       </header>

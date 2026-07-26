@@ -148,7 +148,7 @@ export default function PageSeance() {
     return (
       <Carte>
         <Vide
-          icone="🌿" titre="Aucun programme"
+          icone="⚒️" titre="Aucun programme"
           texte="Créez d'abord votre profil pour générer un programme."
           action={<Link href="/profil"><Bouton>Créer mon profil</Bouton></Link>}
         />

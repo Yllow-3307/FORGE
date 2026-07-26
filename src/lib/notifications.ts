@@ -128,7 +128,7 @@ export function rappelsDuJour(
   return rappels.sort((a, b) => a.heure - b.heure);
 }
 
-const CLE_ENVOYES = "callisthenic:rappels-envoyes";
+const CLE_ENVOYES = "forge:rappels-envoyes";
 
 /** Empêche de renvoyer deux fois le même rappel dans la journée. */
 function dejaEnvoye(cle: string): boolean {

@@ -55,9 +55,9 @@ export interface MesurePoids {
   poids: number;
 }
 
-const CLE_FICHES = "callisthenic:fiches";
-const CLE_SEANCES = "callisthenic:seances";
-const CLE_POIDS = "callisthenic:poids";
+const CLE_FICHES = "forge:fiches";
+const CLE_SEANCES = "forge:seances";
+const CLE_POIDS = "forge:poids";
 
 /* ------------------------------------------------------- Utilitaires locaux */
 

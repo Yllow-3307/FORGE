@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bouton } from "./ui";
+import { LogoForge } from "./logo";
 import { useApp } from "@/lib/useApp";
 import { demarrerRappels, rappelsDuJour } from "@/lib/notifications";
 
@@ -21,7 +22,7 @@ interface EvenementInstallation extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
-const CLE_REFUS = "callisthenic:installation-refusee";
+const CLE_REFUS = "forge:installation-refusee";
 
 export function GestionPWA() {
   const { programme, reglages, semaine } = useApp();
@@ -172,11 +173,9 @@ export function GestionPWA() {
             className="glass-strong fixed inset-x-3 bottom-24 z-[60] rounded-xl2 p-5 md:bottom-4 md:left-auto md:right-4 md:max-w-sm"
           >
             <div className="flex items-start gap-3">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[var(--accent)] text-xl">
-                🌿
-              </span>
+              <LogoForge taille={44} className="rounded-2xl" />
               <div className="min-w-0 flex-1">
-                <p className="font-semibold">Installer Callisthenic</p>
+                <p className="font-semibold">Installer FORGE</p>
                 <p className="mt-0.5 text-sm text-muted text-pretty">
                   Ajoutez l&apos;application à votre écran d&apos;accueil : elle
                   s&apos;ouvre en plein écran et fonctionne sans connexion.

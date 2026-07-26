@@ -114,7 +114,7 @@ export default function PageParametres() {
   const exporter = () => {
     telecharger(
       exporterHistorique(),
-      `callisthenic-historique-${new Date().toISOString().slice(0, 10)}.json`,
+      `forge-historique-${new Date().toISOString().slice(0, 10)}.json`,
     );
   };
 

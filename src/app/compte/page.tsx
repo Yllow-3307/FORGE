@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bouton, Carte, Champ, Encart, Saisie, cx } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
+import { LogoForge } from "@/components/logo";
 
 type Mode = "connexion" | "inscription" | "oubli";
 
@@ -140,9 +141,7 @@ export default function PageCompte() {
     <div className="mx-auto max-w-lg space-y-4">
       <Carte className="p-6 sm:p-8">
         <div className="mb-5 flex items-center gap-3">
-          <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[var(--accent)] text-xl">
-            🌿
-          </span>
+          <LogoForge taille={44} className="rounded-2xl" />
           <div>
             <h1 className="text-xl font-bold">{titres[mode]}</h1>
             <p className="text-xs text-muted">
