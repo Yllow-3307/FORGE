@@ -62,9 +62,22 @@ export function FournisseurAuth({ children }: { children: React.ReactNode }) {
     if (!sb) return;
 
     let annule = false;
+
+    // Même précaution que pour le stockage : un projet Supabase en pause peut
+    // mettre plusieurs secondes à répondre. Passé ce délai, on considère
+    // qu'il n'y a pas de session plutôt que de figer l'interface.
+    const secours = setTimeout(() => {
+      if (!annule) setChargement(false);
+    }, 2500);
+
     sb.auth.getSession().then(({ data }) => {
       if (annule) return;
+      clearTimeout(secours);
       setSession(data.session);
+      setChargement(false);
+    }).catch(() => {
+      if (annule) return;
+      clearTimeout(secours);
       setChargement(false);
     });
 
@@ -80,6 +93,7 @@ export function FournisseurAuth({ children }: { children: React.ReactNode }) {
 
     return () => {
       annule = true;
+      clearTimeout(secours);
       abonnement.subscription.unsubscribe();
     };
   }, []);

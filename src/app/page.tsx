@@ -56,8 +56,9 @@ export default function Accueil() {
 
   if (chargement) {
     return (
-      <div className="grid min-h-[60vh] place-items-center">
+      <div className="grid min-h-[60vh] place-items-center gap-4 text-center">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--accent)]" />
+        <p className="text-sm text-muted">Chargement de votre programme…</p>
       </div>
     );
   }

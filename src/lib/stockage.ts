@@ -75,6 +75,33 @@ function ecrireLocal<T>(cle: string, valeur: T[]): void {
   localStorage.setItem(cle, JSON.stringify(valeur));
 }
 
+/**
+ * Borne le temps d'attente d'une requête distante.
+ *
+ * Un projet Supabase gratuit est mis en pause après une semaine d'inactivité
+ * et met plusieurs secondes à se réveiller ; le réseau peut aussi être
+ * défaillant. Sans délai maximal, l'interface resterait bloquée sur son
+ * indicateur de chargement. On bascule alors sur le cache local, qui contient
+ * déjà les données de l'utilisateur.
+ */
+const DELAI_RESEAU_MS = 2500;
+
+async function avecDelai<T>(promesse: PromiseLike<T>, secours: T): Promise<T> {
+  let minuteur: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promesse,
+      new Promise<T>((resoudre) => {
+        minuteur = setTimeout(() => resoudre(secours), DELAI_RESEAU_MS);
+      }),
+    ]);
+  } catch {
+    return secours;
+  } finally {
+    if (minuteur) clearTimeout(minuteur);
+  }
+}
+
 export function identifiant(): string {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
@@ -86,10 +113,10 @@ export function identifiant(): string {
 export async function listerFiches(): Promise<FicheClient[]> {
   const sb = supabase();
   if (sb) {
-    const { data, error } = await sb
-      .from("fiches")
-      .select("*")
-      .order("maj_le", { ascending: false });
+    const { data, error } = await avecDelai(
+      sb.from("fiches").select("*").order("maj_le", { ascending: false }),
+      { data: null, error: new Error("délai dépassé") } as never,
+    );
     if (!error && data) {
       return data.map((r) => ({
         id: r.id, nom: r.nom, profil: r.profil as Profil,
@@ -119,15 +146,18 @@ export async function enregistrerFiche(profil: Profil, id?: string): Promise<Fic
 
   const sb = supabase();
   if (sb) {
-    const { data: session } = await sb.auth.getUser();
-    const { error } = await sb.from("fiches").upsert({
+    const { data: session } = await avecDelai(
+      sb.auth.getUser(),
+      { data: { user: null } } as never,
+    );
+    const { error } = await avecDelai(sb.from("fiches").upsert({
       id: fiche.id,
       nom: fiche.nom,
       profil: fiche.profil,
       cree_le: fiche.creeLe,
       maj_le: fiche.majLe,
       utilisateur_id: session.user?.id ?? null,
-    });
+    }), { error: new Error("délai dépassé") } as never);
     if (!error) return fiche;
   }
 
@@ -153,11 +183,11 @@ export async function supprimerFiche(id: string): Promise<void> {
 export async function listerSeances(ficheId: string): Promise<SeanceRealisee[]> {
   const sb = supabase();
   if (sb) {
-    const { data, error } = await sb
-      .from("seances_realisees")
-      .select("*")
-      .eq("fiche_id", ficheId)
-      .order("date", { ascending: false });
+    const { data, error } = await avecDelai(
+      sb.from("seances_realisees").select("*").eq("fiche_id", ficheId)
+        .order("date", { ascending: false }),
+      { data: null, error: new Error("délai dépassé") } as never,
+    );
     if (!error && data) {
       return data.map((r) => ({
         id: r.id, ficheId: r.fiche_id, date: r.date,
@@ -199,11 +229,11 @@ export async function supprimerSeance(id: string): Promise<void> {
 export async function listerPoids(ficheId: string): Promise<MesurePoids[]> {
   const sb = supabase();
   if (sb) {
-    const { data, error } = await sb
-      .from("mesures_poids")
-      .select("*")
-      .eq("fiche_id", ficheId)
-      .order("date", { ascending: true });
+    const { data, error } = await avecDelai(
+      sb.from("mesures_poids").select("*").eq("fiche_id", ficheId)
+        .order("date", { ascending: true }),
+      { data: null, error: new Error("délai dépassé") } as never,
+    );
     if (!error && data) {
       return data.map((r) => ({ id: r.id, ficheId: r.fiche_id, date: r.date, poids: r.poids }));
     }
