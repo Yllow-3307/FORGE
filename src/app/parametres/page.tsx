@@ -25,6 +25,7 @@ import {
   notificationTest, souscrirePermission,
 } from "@/lib/notifications";
 import { useModeInstalle } from "@/components/pwa";
+import { derniereSynchro, synchroniser } from "@/lib/synchro";
 
 function Interrupteur({
   actif, onChange, label, description,
@@ -77,6 +78,8 @@ export default function PageParametres() {
     instantanePermissionServeur,
   );
   const [nouveauMdp, setNouveauMdp] = useState("");
+  const [synchroEnCours, setSynchroEnCours] = useState(false);
+  const [messageSynchro, setMessageSynchro] = useState("");
   const [messageMdp, setMessageMdp] = useState("");
   const [formMdp, setFormMdp] = useState(false);
 
@@ -128,6 +131,16 @@ export default function PageParametres() {
     if (etat === "granted") await notificationTest();
   };
 
+  const lancerSynchro = async () => {
+    if (!fiche) return;
+    setSynchroEnCours(true);
+    setMessageSynchro("");
+    const r = await synchroniser(fiche.id);
+    setMessageSynchro(r.message);
+    setSynchroEnCours(false);
+    rafraichir();
+  };
+
   const validerMdp = async () => {
     if (nouveauMdp.length < 8) {
       setMessageMdp("Le mot de passe doit contenir au moins 8 caractères.");
@@ -177,6 +190,48 @@ export default function PageParametres() {
                 <Link href="/compte"><Bouton taille="sm">Se connecter</Bouton></Link>
               </div>
             )}
+          </Carte>
+        )}
+
+        {authDisponible && utilisateur && (
+          <Carte className="p-5 sm:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-medium">Synchronisation</p>
+                <p className="mt-0.5 text-xs text-muted">
+                  {(() => {
+                    const d = derniereSynchro();
+                    return d
+                      ? `Dernière synchronisation : ${d.toLocaleString("fr-FR", {
+                          dateStyle: "short", timeStyle: "short",
+                        })}`
+                      : "Jamais synchronisé sur cet appareil.";
+                  })()}
+                </p>
+              </div>
+              <Bouton taille="sm" onClick={lancerSynchro} disabled={synchroEnCours}>
+                {synchroEnCours ? "Synchronisation…" : "Synchroniser"}
+              </Bouton>
+            </div>
+
+            {messageSynchro && (
+              <p
+                className={cx(
+                  "mt-3 rounded-2xl px-4 py-2.5 text-sm",
+                  messageSynchro.startsWith("Synchronis") || messageSynchro.startsWith("Tout est")
+                    ? "bg-[var(--accent-soft)] text-[var(--accent)]"
+                    : "bg-[var(--warn-soft)] text-[var(--warn)]",
+                )}
+              >
+                {messageSynchro}
+              </p>
+            )}
+
+            <p className="mt-3 text-xs text-faint text-pretty">
+              Repas, hydratation, séances réalisées et progression des skills sont
+              envoyés sur votre compte. En cas de modification sur deux appareils,
+              la version la plus récente est conservée.
+            </p>
           </Carte>
         )}
 

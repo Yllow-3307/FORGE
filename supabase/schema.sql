@@ -153,6 +153,9 @@ create table if not exists public.journal (
   accomplissement smallint,
   ressenti       text,
   energie        smallint check (energie between 1 and 5),
+  -- Horodatage de la dernière modification : arbitre les conflits entre
+  -- appareils (la version la plus récente l'emporte).
+  maj_le         timestamptz not null default now(),
   unique (fiche_id, date)
 );
 

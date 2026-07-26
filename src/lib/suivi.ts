@@ -32,6 +32,8 @@ export interface JournalJour {
   accomplissement?: number;     // pourcentage d'exercices validés
   ressenti?: string;
   energie?: 1 | 2 | 3 | 4 | 5;
+  /** Dernière modification locale : arbitre les conflits de synchronisation. */
+  majLe?: string;
 }
 
 export interface ProgresSkill {
@@ -145,7 +147,9 @@ export function majJour(date: string, maj: Partial<JournalJour>): JournalJour {
   const journal = lireJournal();
   const i = journal.findIndex((j) => j.date === date);
   const base = i >= 0 ? journal[i] : { date, repas: [], hydratationMl: 0, seanceFaite: false };
-  const suivant = { ...base, ...maj };
+  // L'horodatage est posé à chaque écriture : sans lui, la synchronisation
+  // ne saurait pas quelle version est la plus récente.
+  const suivant = { ...base, ...maj, majLe: new Date().toISOString() };
   if (i >= 0) journal[i] = suivant;
   else journal.push(suivant);
   ecrire(CLE_JOURNAL, journal);

@@ -15,6 +15,8 @@ import { Bouton } from "./ui";
 import { LogoForge } from "./logo";
 import { useApp } from "@/lib/useApp";
 import { demarrerRappels, rappelsDuJour } from "@/lib/notifications";
+import { synchroniser } from "@/lib/synchro";
+import { useAuth } from "@/lib/auth";
 
 /** Événement non standard, encore absent des types du DOM. */
 interface EvenementInstallation extends Event {
@@ -25,7 +27,8 @@ interface EvenementInstallation extends Event {
 const CLE_REFUS = "forge:installation-refusee";
 
 export function GestionPWA() {
-  const { programme, reglages, semaine } = useApp();
+  const { programme, reglages, semaine, fiche } = useApp();
+  const { utilisateur } = useAuth();
   const [invite, setInvite] = useState<EvenementInstallation | null>(null);
   const [visible, setVisible] = useState(false);
   const [horsLigne, setHorsLigne] = useState(false);
@@ -105,6 +108,27 @@ export function GestionPWA() {
       rappelsDuJour(programme, reglages.notifications, semaine),
     );
   }, [programme, reglages.notifications, semaine]);
+
+  // --- Synchronisation automatique ---
+  // À la connexion puis au retour du réseau : l'utilisateur n'a pas à y penser.
+  // Le bouton manuel des paramètres reste disponible pour forcer un envoi.
+  useEffect(() => {
+    if (!utilisateur || !fiche) return;
+
+    let annule = false;
+    const lancer = () => {
+      if (!annule && navigator.onLine) void synchroniser(fiche.id);
+    };
+
+    // Léger différé : on laisse l'écran s'afficher avant de solliciter le réseau.
+    const differe = setTimeout(lancer, 1500);
+    window.addEventListener("online", lancer);
+    return () => {
+      annule = true;
+      clearTimeout(differe);
+      window.removeEventListener("online", lancer);
+    };
+  }, [utilisateur, fiche]);
 
   const installer = useCallback(async () => {
     if (!invite) return;
