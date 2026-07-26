@@ -57,16 +57,29 @@ webapp/
 │   ├── app/
 │   │   ├── globals.css        ← design tokens, thèmes clair/sombre, verre dépoli
 │   │   ├── layout.tsx         ← coquille, anti-flash de thème
-│   │   ├── page.tsx           ← Accueil
-│   │   ├── profil/            ← questionnaire (à venir)
-│   │   ├── programme/         ← programme généré (à venir)
-│   │   └── suivi/             ← suivi du poids et des séances (à venir)
+│   │   ├── page.tsx           ← Accueil : série + tableau de bord à widgets
+│   │   ├── profil/            ← questionnaire en 5 étapes
+│   │   ├── seance/            ← topo, lecteur, étirements, récapitulatif
+│   │   ├── nutrition/         ← scores, journal des repas, suggestions
+│   │   ├── programme/         ← cycle, phases, calendrier
+│   │   ├── progres/           ← skills et paliers de progression
+│   │   ├── mesures/           ← pesées et courbe d'évolution
+│   │   └── parametres/        ← compte, notifications, programme
 │   ├── components/
 │   │   ├── ui.tsx             ← primitives : Carte, Bouton, Champ, Barre…
+│   │   ├── widgets.tsx        ← tuiles du tableau de bord (3 formats)
+│   │   ├── minuteur.tsx       ← compte à rebours du lecteur de séance
 │   │   ├── navigation.tsx     ← en-tête (bureau) + barre basse (mobile)
 │   │   ├── theme.tsx          ← bascule clair/sombre
-│   │   └── apercu-hero.tsx    ← illustration animée de l'accueil
+│   │   └── apercu-hero.tsx    ← illustration animée
 │   └── lib/
+│       ├── donnees/
+│       │   ├── skills.ts      ← 16 figures et leurs paliers
+│       │   ├── aliments.ts    ← base de 60 aliments
+│       │   └── seance.ts      ← consignes, échauffement, étirements
+│       ├── suivi.ts           ← journal, scores, série, widgets
+│       ├── store.ts           ← abonnement réactif au stockage local
+│       ├── useApp.ts          ← état applicatif partagé
 │       ├── moteur/            ← moteur de programmation (TypeScript)
 │       │   ├── types.ts       ← contrat de données
 │       │   ├── noyau.ts       ← temps, arrondis, dérivations, validation
@@ -97,6 +110,18 @@ Deux pièges corrigés lors du portage, à conserver en tête :
 
 Toute évolution des règles doit être répercutée **des deux côtés**, puis
 validée par le test de parité.
+
+### Écrans
+
+| Écran | Contenu |
+|---|---|
+| **Accueil** | Série de séances consécutives, séance du jour, tableau de bord composé de widgets (grand carré, petit carré, rectangle) que l'on ajoute, déplace et redimensionne |
+| **Séance** | Topo avec 3 consignes, puis lecteur plein écran : échauffement chronométré, séance (minuteur pour les blocs en temps, validation de séries sinon), étirements ciblés sur les muscles sollicités, récapitulatif avec pourcentage d'accomplissement et ressenti |
+| **Nutrition** | Score bouffe et score hydra, journal des repas (base d'aliments ou saisie manuelle), suggestions chiffrées pour combler l'écart avec les cibles |
+| **Programme** | Position dans le cycle, découpage en phases, calendrier navigable semaine par semaine |
+| **Progrès** | Skills suivis avec l'étape en cours, catalogue complet des 16 figures et leurs paliers |
+| **Mesures** | Pesée (poids, taille, énergie) et courbe avec moyenne mobile sur 7 jours |
+| **Paramètres** | Compte, thème, historique, notifications, changement de programme |
 
 ---
 
