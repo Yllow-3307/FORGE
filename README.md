@@ -9,9 +9,10 @@ thèmes clair et sombre.
 
 ---
 
-> **Pour tester tout de suite :** `cd webapp && npm install && npm run dev`
-> Mise en ligne et comptes : voir **[DEPLOIEMENT.md](DEPLOIEMENT.md)**.
-> Ce qu'il reste à faire : voir **[FEUILLE-DE-ROUTE.md](FEUILLE-DE-ROUTE.md)**.
+> **Tester tout de suite :** `npm install && npm run dev`
+> **Mettre en ligne (GitHub + Vercel) :** [METTRE-EN-LIGNE.md](METTRE-EN-LIGNE.md)
+> **Comptes et synchronisation :** [DEPLOIEMENT.md](DEPLOIEMENT.md)
+> **Ce qu'il reste à faire :** [FEUILLE-DE-ROUTE.md](FEUILLE-DE-ROUTE.md)
 
 ## Démarrage
 
