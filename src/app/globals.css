@@ -397,7 +397,7 @@ body::after {
 
   /* Intitulés : discrets, espacés, toujours lisibles */
   .etiquette {
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     font-weight: 500;
     letter-spacing: 0.1em;
     text-transform: uppercase;
