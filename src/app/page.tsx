@@ -10,7 +10,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bouton, Carte, Vide, cascade, enfantCascade, cx } from "@/components/ui";
+import { Bouton, Carte, Vide, cascade, enfantCascade, survolCarte, cx } from "@/components/ui";
 import { CATALOGUE_WIDGETS, CLASSES_TAILLE, RendreWidget } from "@/components/widgets";
 import { useApp, libelleSeance } from "@/lib/useApp";
 import { majReglages, type TailleWidget, type TypeWidget, type Widget } from "@/lib/suivi";
@@ -57,7 +57,10 @@ export default function Accueil() {
   if (chargement) {
     return (
       <div className="grid min-h-[60vh] place-items-center gap-4 text-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--accent)]" />
+        <div
+          role="status" aria-label="Chargement en cours"
+          className="h-9 w-9 animate-spin rounded-full border-2 border-[var(--border-strong)] border-t-[var(--accent)]"
+        />
         <p className="text-sm text-muted">Chargement de votre programme…</p>
       </div>
     );
@@ -80,36 +83,44 @@ export default function Accueil() {
     <motion.div variants={cascade} initial="initial" animate="animate" className="space-y-4 sm:space-y-5">
       {/* -------------------------- En-tête série -------------------------- */}
       <motion.section variants={enfantCascade}>
-        <Carte className="relative overflow-hidden p-6 sm:p-8">
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
-            <div className="flex items-center gap-3">
+        <Carte fort className="carte-editoriale relative overflow-hidden p-6 sm:p-9">
+          {/* Halo corail diffusé dans l'angle : donne la profondeur du verre.
+              Purement décoratif, donc insensible au pointeur. */}
+          <span
+            aria-hidden
+            className="pointer-events-none absolute -right-24 -top-28 h-64 w-64 rounded-full
+                       bg-[radial-gradient(circle,var(--accent-soft-fort),transparent_70%)] blur-2xl"
+          />
+
+          <div className="relative flex flex-wrap items-center gap-x-7 gap-y-5">
+            <div className="flex items-center gap-3.5">
               <motion.span
                 className="text-4xl"
-                animate={serie > 0 ? { scale: [1, 1.1, 1] } : {}}
-                transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+                animate={serie > 0 ? { scale: [1, 1.06, 1] } : {}}
+                transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
               >
                 🔥
               </motion.span>
               <div>
-                <p className="chiffre text-4xl leading-none sm:text-5xl">{serie}</p>
-                <p className="mt-1 text-xs text-muted">
+                <p className="chiffre valeur-md leading-none">{serie}</p>
+                <p className="mt-1.5 text-xs text-muted">
                   {`séance${serie > 1 ? "s" : ""} d'affilée`}
                 </p>
               </div>
             </div>
 
-            <div className="h-14 w-px bg-[var(--border)] max-sm:hidden" />
+            <div className="h-14 w-px bg-[var(--border-strong)] max-sm:hidden" />
 
             <div className="min-w-0 flex-1">
               <p className="etiquette">Aujourd&apos;hui c&apos;est</p>
-              <p className="mt-1 text-lg font-medium leading-tight text-balance lueur-texte sm:text-2xl">
+              <p className="mt-1.5 text-xl font-light leading-tight text-balance lueur-texte sm:text-3xl">
                 {libelleSeance(seancesDuJour)}
               </p>
             </div>
 
             {!repos && (
               <Link href="/seance" className="max-sm:w-full">
-                <Bouton pleineLargeur={true} className="sm:w-auto">
+                <Bouton taille="lg" pleineLargeur={true} className="sm:w-auto">
                   Lancer la séance →
                 </Bouton>
               </Link>
@@ -119,7 +130,10 @@ export default function Accueil() {
       </motion.section>
 
       {/* ---------------------- Barre d'édition widgets --------------------- */}
-      <motion.div variants={enfantCascade} className="flex items-center justify-between px-1">
+      <motion.div
+        variants={enfantCascade}
+        className="flex items-center justify-between gap-3 px-1 pt-1"
+      >
         <h2 className="etiquette">Tableau de bord</h2>
         <Bouton
           variante={edition ? "principal" : "fantome"}
@@ -159,20 +173,20 @@ export default function Accueil() {
                   </div>
 
                   {edition && (
-                    <div className="absolute inset-0 z-10 flex flex-col justify-between rounded-xl2 border-2 border-dashed border-[var(--accent)] bg-[var(--accent-soft)]/60 p-2">
+                    <div className="absolute inset-0 z-10 flex flex-col justify-between rounded-xl2 border-2 border-dashed border-[var(--accent)] bg-[var(--accent-soft-fort)] p-2 backdrop-blur-[2px]">
                       <div className="flex justify-between gap-1">
                         <button
                           onClick={() => deplacer(w.id, -1)}
                           disabled={i === 0}
                           aria-label="Déplacer vers la gauche"
-                          className="grid h-7 w-7 place-items-center rounded-full bg-[var(--surface)] text-sm shadow-soft disabled:opacity-30"
+                          className="grid h-8 w-8 place-items-center rounded-full bg-[var(--surface)] text-sm shadow-soft transition hover:bg-white disabled:opacity-30"
                         >
                           ←
                         </button>
                         <button
                           onClick={() => retirer(w.id)}
                           aria-label="Retirer le widget"
-                          className="grid h-7 w-7 place-items-center rounded-full bg-[var(--danger)] text-sm text-white shadow-soft"
+                          className="grid h-8 w-8 place-items-center rounded-full bg-[var(--danger)] text-sm text-white shadow-soft transition hover:brightness-110"
                         >
                           ×
                         </button>
@@ -180,7 +194,7 @@ export default function Accueil() {
                       <div className="flex justify-between gap-1">
                         <button
                           onClick={() => changerTaille(w.id)}
-                          className="rounded-pill bg-[var(--surface)] px-2 py-1 text-[0.65rem] font-medium shadow-soft"
+                          className="rounded-pill bg-[var(--surface)] px-2.5 py-1.5 text-[0.65rem] font-medium shadow-soft transition hover:bg-white"
                         >
                           ⤢ taille
                         </button>
@@ -188,7 +202,7 @@ export default function Accueil() {
                           onClick={() => deplacer(w.id, 1)}
                           disabled={i === widgets.length - 1}
                           aria-label="Déplacer vers la droite"
-                          className="grid h-7 w-7 place-items-center rounded-full bg-[var(--surface)] text-sm shadow-soft disabled:opacity-30"
+                          className="grid h-8 w-8 place-items-center rounded-full bg-[var(--surface)] text-sm shadow-soft transition hover:bg-white disabled:opacity-30"
                         >
                           →
                         </button>
@@ -221,7 +235,10 @@ export default function Accueil() {
                   <button
                     key={c.type}
                     onClick={() => ajouter(c.type, c.tailles[0])}
-                    className="flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-left transition hover:border-[var(--accent)]"
+                    className="flex min-h-14 items-center gap-3 rounded-2xl border border-[var(--border)]
+                               bg-[var(--surface-2)] px-4 py-3 text-left
+                               transition-[background-color,border-color,box-shadow] duration-200
+                               hover:border-[var(--border-strong)] hover:bg-[var(--surface)] hover:shadow-soft"
                   >
                     <span className="text-xl">{c.emoji}</span>
                     <span className="flex-1 text-sm font-medium">{c.nom}</span>
@@ -242,11 +259,10 @@ export default function Accueil() {
           { href: "/progres", emoji: "🏆", nom: "Progrès" },
           { href: "/mesures", emoji: "⚖️", nom: "Mesures" },
         ].map((l) => (
-          <Link key={l.href} href={l.href}>
+          <Link key={l.href} href={l.href} className="rounded-xl2">
             <Carte
-              whileHover={{ y: -3 }}
-              transition={{ type: "spring", stiffness: 400, damping: 28 }}
-              className="flex items-center gap-2.5 px-4 py-3"
+              {...survolCarte}
+              className="flex min-h-14 items-center gap-2.5 px-4 py-3.5"
             >
               <span className="text-lg">{l.emoji}</span>
               <span className="text-sm font-medium">{l.nom}</span>

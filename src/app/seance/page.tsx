@@ -139,7 +139,10 @@ export default function PageSeance() {
   if (chargement) {
     return (
       <div className="grid min-h-[60vh] place-items-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--accent)]" />
+        <div
+          role="status" aria-label="Chargement en cours"
+          className="h-9 w-9 animate-spin rounded-full border-2 border-[var(--border-strong)] border-t-[var(--accent)]"
+        />
       </div>
     );
   }
@@ -178,22 +181,23 @@ export default function PageSeance() {
             initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -14 }} className="space-y-4"
           >
-            <Carte className="p-5 sm:p-8">
+            <Carte fort className="carte-editoriale p-5 sm:p-9">
               <Pastille ton="accent">{seance.type === "force" ? "Renforcement" : "Endurance"}</Pastille>
-              <h1 className="mt-3 text-2xl font-bold sm:text-3xl">
-                Aujourd&apos;hui c&apos;est <span className="text-[var(--accent)]">{seance.nom}</span>
+              <h1 className="mt-4 text-2xl font-light leading-tight text-balance sm:text-4xl">
+                Aujourd&apos;hui c&apos;est{" "}
+                <span className="font-normal text-[var(--accent)]">{seance.nom}</span>
               </h1>
-              <p className="mt-2 text-sm text-muted">
+              <p className="mt-3 text-sm text-muted">
                 Prévu à {seance.debut} · intensité {seance.intensite}
               </p>
             </Carte>
 
             <Carte className="p-5 sm:p-6">
-              <h2 className="font-bold">On se concentre sur</h2>
+              <h2 className="text-lg font-medium">On se concentre sur</h2>
               <ol className="mt-4 space-y-3">
                 {consignes.map((c, i) => (
                   <li key={i} className="flex gap-3">
-                    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[var(--accent)] text-xs font-bold text-[var(--accent-contrast)]">
+                    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[image:var(--accent-degrade)] text-xs font-semibold text-[var(--accent-contrast)]">
                       {i + 1}
                     </span>
                     <p className="text-sm leading-relaxed text-pretty">{c}</p>
@@ -204,13 +208,11 @@ export default function PageSeance() {
 
             <Carte className="flex flex-wrap items-center justify-between gap-4 p-6">
               <div>
-                <p className="text-[0.7rem] font-semibold uppercase tracking-wider text-faint">
-                  Tout ça pendant
+                <p className="etiquette">Tout ça pendant</p>
+                <p className="mt-1.5 chiffre valeur-md leading-none">
+                  {seance.dureeMin}<span className="unite ml-1.5 text-[0.3em]">min</span>
                 </p>
-                <p className="mt-1 text-3xl font-bold tnum">
-                  {seance.dureeMin} <span className="text-base font-normal text-muted">min</span>
-                </p>
-                <p className="mt-1 text-xs text-muted">
+                <p className="mt-2 text-xs text-muted">
                   {blocs.length} exercice{blocs.length > 1 ? "s" : ""} · {totalSeries} séries
                 </p>
               </div>
@@ -220,10 +222,10 @@ export default function PageSeance() {
             </Carte>
 
             <Carte className="p-4 sm:p-5">
-              <h3 className="mb-3 text-sm font-semibold">Au programme</h3>
+              <h3 className="etiquette mb-3.5">Au programme</h3>
               <ul className="space-y-1.5">
                 {blocs.map((b, i) => (
-                  <li key={i} className="flex items-baseline justify-between gap-3 text-sm">
+                  <li key={i} className="flex items-baseline justify-between gap-3 border-b border-[var(--filet)] pb-1.5 text-sm last:border-0 last:pb-0">
                     <span className="min-w-0 flex-1 truncate">{b.nom}</span>
                     <span className="shrink-0 tnum text-muted">{b.series} × {b.reps}</span>
                   </li>
@@ -239,11 +241,11 @@ export default function PageSeance() {
             key="ech"
             initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -14 }}
           >
-            <Carte className="flex flex-col items-center p-6 text-center sm:p-10">
+            <Carte fort className="carte-editoriale flex flex-col items-center p-6 text-center sm:p-12">
               <Pastille ton="warn">
                 Échauffement {indexEchauffement + 1}/{echauffement.length}
               </Pastille>
-              <h2 className="mt-4 text-2xl font-bold">{etapeEch.nom}</h2>
+              <h2 className="mt-4 text-2xl font-light">{etapeEch.nom}</h2>
               <p className="mt-2 max-w-md text-sm text-muted text-pretty">{etapeEch.consigne}</p>
 
               <div className="my-8">
@@ -293,9 +295,9 @@ export default function PageSeance() {
           >
             {/* Progression globale */}
             <div className="flex items-center gap-3 px-1">
-              <div className="h-2 flex-1 overflow-hidden rounded-pill bg-[var(--surface-2)]">
+              <div className="h-1.5 flex-1 overflow-hidden rounded-pill bg-[var(--surface-2)]">
                 <motion.div
-                  className="h-full rounded-pill bg-[var(--accent)]"
+                  className="h-full rounded-pill bg-[image:var(--accent-degrade)]"
                   animate={{ width: `${accomplissement}%` }}
                   transition={{ duration: 0.4 }}
                 />
@@ -305,18 +307,18 @@ export default function PageSeance() {
               </span>
             </div>
 
-            <Carte className="flex flex-col items-center p-6 text-center sm:p-10">
+            <Carte fort className="carte-editoriale flex flex-col items-center p-6 text-center sm:p-12">
               {enRepos ? (
                 <>
                   <Pastille>Récupération</Pastille>
-                  <h2 className="mt-4 text-xl font-semibold text-muted">
+                  <h2 className="mt-4 text-xl font-light text-muted">
                     Prochaine série : {blocCourant.nom}
                   </h2>
                   <div className="my-8">
                     <CercleMinuteur
                       restant={minuteurRepos.restant}
                       total={blocCourant.repos}
-                      couleur="#5aa9d6"
+                      couleur="var(--eau)"
                       libelle="repos"
                     />
                   </div>
@@ -334,7 +336,7 @@ export default function PageSeance() {
                   <Pastille ton="accent">
                     Exercice {indexBloc + 1}/{blocs.length}
                   </Pastille>
-                  <h2 className="mt-4 text-2xl font-bold text-balance">{blocCourant.nom}</h2>
+                  <h2 className="mt-4 text-2xl font-light text-balance sm:text-3xl">{blocCourant.nom}</h2>
 
                   {estChronometre ? (
                     <>

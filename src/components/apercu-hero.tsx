@@ -85,13 +85,13 @@ export function ApercuHero() {
         <span className="text-[0.68rem] font-semibold uppercase tracking-wider text-faint">
           Aujourd&apos;hui
         </span>
-        <p className="mt-1 text-2xl font-bold tnum">
-          2 020<span className="ml-1 text-xs font-normal text-muted">kcal</span>
+        <p className="chiffre mt-1 valeur-sm leading-none">
+          2 020<span className="unite ml-1.5 text-[0.5rem]">kcal</span>
         </p>
         <div className="mt-3 flex h-2 overflow-hidden rounded-pill">
-          <div className="w-[32%] bg-[var(--accent)]" />
-          <div className="w-[42%] bg-[#7fb3c8]" />
-          <div className="w-[26%] bg-[var(--color-peach)]" />
+          <div className="w-[32%] bg-[var(--data-proteines)]" />
+          <div className="w-[42%] bg-[var(--data-glucides)]" />
+          <div className="w-[26%] bg-[var(--data-lipides)]" />
         </div>
         <div className="mt-2 flex justify-between text-[0.68rem] text-muted">
           <span>P 164 g</span>

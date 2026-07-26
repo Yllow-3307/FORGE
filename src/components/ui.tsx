@@ -1,8 +1,12 @@
 "use client";
 
 /**
- * ui.tsx — Primitives visuelles partagées, inspirées du moodboard :
- * verre dépoli, coins très arrondis, ombres douces, animations discrètes.
+ * ui.tsx — Primitives visuelles partagées.
+ *
+ * Direction : verre dépoli lumineux, coins « squircle », ombres diffuses,
+ * grands chiffres en graisse fine, animations discrètes et courtes.
+ * Toutes les valeurs sensibles (couleurs, rayons, durées) viennent des
+ * jetons définis dans `globals.css` : aucune constante en dur ici.
  */
 
 import { motion, type HTMLMotionProps } from "framer-motion";
@@ -15,10 +19,13 @@ export const cx = (...c: (string | false | null | undefined)[]) =>
    Animations réutilisables
    ------------------------------------------------------------------------- */
 
+/** Courbe unique de l'interface : sortie douce, sans rebond. */
+const DOUX = [0.22, 1, 0.36, 1] as const;
+
 export const apparition = {
   initial: { opacity: 0, y: 12 },
   animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] as const },
+  transition: { duration: 0.45, ease: DOUX },
 };
 
 /** Conteneur qui fait apparaître ses enfants en cascade. */
@@ -31,8 +38,14 @@ export const enfantCascade = {
   animate: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as const },
+    transition: { duration: 0.5, ease: DOUX },
   },
+};
+
+/** Survol commun aux surfaces cliquables : déplacement à peine perceptible. */
+export const survolCarte = {
+  whileHover: { y: -2 },
+  transition: { type: "spring" as const, stiffness: 400, damping: 30 },
 };
 
 /* -------------------------------------------------------------------------
@@ -49,12 +62,17 @@ interface CarteProps extends HTMLMotionProps<"div"> {
 export function Carte({
   children, fort = false, sansReflet = false, className = "", ...rest
 }: CarteProps) {
+  // Une carte animée au survol est cliquable : on lui donne aussi la
+  // transition de bordure et d'ombre qui accompagne le déplacement.
+  const interactive = rest.whileHover !== undefined;
+
   return (
     <motion.div
       className={cx(
         fort ? "glass-strong" : "glass",
         !sansReflet && "glass-sheen",
         "rounded-xl2",
+        interactive && "glass-interactif",
         className,
       )}
       {...rest}
@@ -71,12 +89,15 @@ export function Carte({
 type Variante = "principal" | "doux" | "fantome" | "danger";
 
 const VARIANTES: Record<Variante, string> = {
+  // Action principale : dégradé corail et ombre portée, elle doit ressortir
+  // immédiatement dans une page faite de surfaces translucides.
   principal:
-    "bg-[var(--accent)] text-[var(--accent-contrast)] hover:brightness-105 active:brightness-95",
+    "bg-[image:var(--accent-degrade)] text-[var(--accent-contrast)] shadow-soft "
+    + "hover:brightness-108 hover:shadow-lift active:brightness-95",
   doux:
-    "bg-[var(--accent-soft)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--accent-contrast)]",
+    "bg-[var(--accent-soft)] text-[var(--accent)] hover:bg-[var(--accent-soft-fort)]",
   fantome:
-    "glass text-ink hover:border-[var(--border-strong)]",
+    "glass text-ink hover:border-[var(--border-strong)] hover:bg-[var(--surface)]",
   danger:
     "bg-[var(--danger-soft)] text-[var(--danger)] hover:bg-[var(--danger)] hover:text-white",
 };
@@ -92,21 +113,23 @@ export function Bouton({
   children, variante = "principal", taille = "md",
   pleineLargeur = false, className = "", disabled, ...rest
 }: BoutonProps) {
+  // Hauteurs pensées pour une cible tactile d'au moins 44 px dès `md`.
   const tailles = {
-    sm: "px-3.5 py-2 text-sm gap-1.5",
-    md: "px-5 py-2.5 text-[0.95rem] gap-2",
-    lg: "px-7 py-3.5 text-base gap-2.5",
+    sm: "min-h-9 px-3.5 py-2 text-sm gap-1.5",
+    md: "min-h-11 px-5 py-2.5 text-[0.95rem] gap-2",
+    lg: "min-h-13 px-7 py-3.5 text-base gap-2.5",
   };
   return (
     <motion.button
-      whileHover={disabled ? undefined : { scale: 1.025 }}
-      whileTap={disabled ? undefined : { scale: 0.975 }}
-      transition={{ type: "spring", stiffness: 420, damping: 26 }}
+      whileHover={disabled ? undefined : { scale: 1.01 }}
+      whileTap={disabled ? undefined : { scale: 0.985 }}
+      transition={{ type: "spring", stiffness: 420, damping: 30 }}
       disabled={disabled}
       className={cx(
         "inline-flex items-center justify-center rounded-pill font-semibold",
-        "transition-[filter,background-color,color,border-color] duration-200",
-        "disabled:cursor-not-allowed disabled:opacity-45",
+        "transition-[filter,background-color,color,border-color,box-shadow]",
+        "duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
+        "disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none",
         tailles[taille],
         VARIANTES[variante],
         pleineLargeur && "w-full",
@@ -131,15 +154,16 @@ export function Pastille({
   className?: string;
 }) {
   const tons = {
-    neutre: "bg-[var(--surface-2)] text-muted",
-    accent: "bg-[var(--accent-soft)] text-[var(--accent)]",
-    warn: "bg-[var(--warn-soft)] text-[var(--warn)]",
-    danger: "bg-[var(--danger-soft)] text-[var(--danger)]",
+    neutre: "bg-[var(--surface-2)] text-muted ring-1 ring-[var(--border)]",
+    accent: "bg-[var(--accent-soft)] text-[var(--accent)] ring-1 ring-[var(--panneau-chaud-bord)]",
+    warn: "bg-[var(--warn-soft)] text-[var(--warn)] ring-1 ring-[var(--warn-soft)]",
+    danger: "bg-[var(--danger-soft)] text-[var(--danger)] ring-1 ring-[var(--danger-soft)]",
   };
   return (
     <span
       className={cx(
         "inline-flex items-center gap-1 rounded-pill px-2.5 py-1 text-xs font-medium",
+        "backdrop-blur-[2px]",
         tons[ton], className,
       )}
     >
@@ -165,7 +189,12 @@ export function Encart({
     danger: "border-l-[var(--danger)] bg-[var(--danger-soft)]",
   };
   return (
-    <div className={cx("rounded-r-2xl border-l-[3px] px-4 py-3 text-sm leading-relaxed", tons[ton])}>
+    <div
+      className={cx(
+        "rounded-l-md rounded-r-2xl border-l-[3px] px-4 py-3.5 text-sm leading-relaxed",
+        tons[ton],
+      )}
+    >
       {titre && <p className="mb-1 font-semibold">{titre}</p>}
       <div className="text-pretty">{children}</div>
     </div>
@@ -185,17 +214,13 @@ export function Stat({
   indice?: string;
 }) {
   return (
-    <div className="rounded-2xl bg-[var(--surface-2)] px-4 py-3">
+    <div className="panneau-froid rounded-2xl px-4 py-3.5">
       <p className="etiquette">{label}</p>
-      <p className="mt-1 chiffre text-2xl leading-none">
+      <p className="mt-1.5 chiffre text-2xl leading-none">
         {valeur}
-        {unite && (
-          <span className="ml-1 text-[0.65rem] font-normal uppercase tracking-widest text-muted">
-            {unite}
-          </span>
-        )}
+        {unite && <span className="unite ml-1.5 text-[0.62rem]">{unite}</span>}
       </p>
-      {indice && <p className="mt-1 text-xs text-muted">{indice}</p>}
+      {indice && <p className="mt-1.5 text-xs text-muted">{indice}</p>}
     </div>
   );
 }
@@ -212,21 +237,19 @@ export function GrandChiffre({
   label?: string;
   taille?: "sm" | "md" | "lg";
 }) {
+  // Échelle fluide : la valeur reste dominante sur mobile sans jamais
+  // déborder de sa carte sur les très petits écrans.
   const tailles = {
-    sm: "text-3xl sm:text-4xl",
-    md: "text-4xl sm:text-5xl",
-    lg: "text-5xl sm:text-6xl",
+    sm: "valeur-sm",
+    md: "valeur-md",
+    lg: "valeur-lg",
   };
   return (
     <div>
-      {label && <p className="etiquette mb-1">{label}</p>}
-      <p className={cx("chiffre leading-[0.95]", tailles[taille])}>
+      {label && <p className="etiquette mb-1.5">{label}</p>}
+      <p className={cx("chiffre leading-[0.92]", tailles[taille])}>
         {valeur}
-        {unite && (
-          <span className="ml-1.5 text-[0.32em] font-normal uppercase tracking-[0.18em] text-muted">
-            {unite}
-          </span>
-        )}
+        {unite && <span className="unite ml-1.5 text-[0.3em]">{unite}</span>}
       </p>
     </div>
   );
@@ -237,9 +260,12 @@ export function GrandChiffre({
    ------------------------------------------------------------------------- */
 
 const CLASSE_CHAMP =
-  "w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 "
-  + "text-[0.95rem] text-ink outline-none transition backdrop-blur-sm "
-  + "focus:border-[var(--border-strong)] focus:bg-[var(--surface)] "
+  "w-full min-h-11 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 "
+  + "text-[0.95rem] text-ink outline-none backdrop-blur-sm "
+  + "transition-[background-color,border-color,box-shadow] duration-200 "
+  + "hover:border-[var(--border-strong)] "
+  + "focus:border-[var(--accent)] focus:bg-[var(--surface)] "
+  + "focus:ring-4 focus:ring-[var(--anneau-focus)] "
   + "placeholder:text-faint";
 
 export function Champ({
@@ -305,13 +331,15 @@ export function Puces<T extends string>({
             key={o.valeur}
             type="button"
             onClick={() => basculer(o.valeur)}
-            whileTap={{ scale: 0.96 }}
+            whileTap={{ scale: 0.985 }}
             aria-pressed={actif}
             className={cx(
-              "rounded-pill border px-3.5 py-2 text-sm transition-colors",
+              "min-h-11 rounded-pill border px-4 py-2 text-sm",
+              "transition-[background-color,border-color,color] duration-200",
               actif
                 ? "border-[var(--accent)] bg-[var(--accent-soft)] font-medium text-[var(--accent)]"
-                : "border-[var(--border)] bg-[var(--surface-2)] text-muted hover:border-[var(--accent)]",
+                : "border-[var(--border)] bg-[var(--surface-2)] text-muted "
+                  + "hover:border-[var(--border-strong)] hover:bg-[var(--surface)] hover:text-ink",
             )}
           >
             {o.libelle}
@@ -340,13 +368,16 @@ export function Choix<T extends string>({
             type="button"
             onClick={() => onChange(o.valeur)}
             whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.985 }}
+            whileTap={{ scale: 0.99 }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
             aria-pressed={actif}
             className={cx(
-              "rounded-2xl border px-4 py-3 text-left transition-colors",
+              "rounded-2xl border px-4 py-3.5 text-left",
+              "transition-[background-color,border-color,box-shadow] duration-200",
               actif
-                ? "border-[var(--accent)] bg-[var(--accent-soft)]"
-                : "border-[var(--border)] bg-[var(--surface-2)] hover:border-[var(--accent)]",
+                ? "border-[var(--accent)] bg-[var(--accent-soft)] shadow-soft"
+                : "border-[var(--border)] bg-[var(--surface-2)] "
+                  + "hover:border-[var(--border-strong)] hover:bg-[var(--surface)] hover:shadow-soft",
             )}
           >
             <span className="flex items-center gap-2 font-medium text-ink">
@@ -377,10 +408,10 @@ export function Curseur({
   const pct = ((valeur - min) / (max - min)) * 100;
   return (
     <div>
-      <div className="mb-2 flex items-baseline justify-between">
-        <span className="text-2xl font-bold tnum">
+      <div className="mb-2.5 flex items-baseline justify-between">
+        <span className="chiffre text-2xl leading-none">
           {valeur}
-          <span className="ml-1 text-sm font-normal text-muted">{suffixe}</span>
+          <span className="unite ml-1.5 text-[0.55rem]">{suffixe}</span>
         </span>
       </div>
       <input
@@ -390,14 +421,19 @@ export function Curseur({
         step={pas}
         value={valeur}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="h-2 w-full cursor-pointer appearance-none rounded-pill outline-none
+        className="h-1.5 w-full cursor-pointer appearance-none rounded-pill outline-none
                    [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5
                    [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full
+                   [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white
                    [&::-webkit-slider-thumb]:bg-[var(--accent)] [&::-webkit-slider-thumb]:shadow-soft
-                   [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:border-0
+                   [&::-webkit-slider-thumb]:transition-transform
+                   hover:[&::-webkit-slider-thumb]:scale-110
+                   [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5
+                   [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white
                    [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[var(--accent)]"
         style={{
-          background: `linear-gradient(to right, var(--accent) ${pct}%, var(--surface-2) ${pct}%)`,
+          background:
+            `linear-gradient(to right, var(--accent-vif) ${pct}%, var(--surface-2) ${pct}%)`,
         }}
       />
     </div>
@@ -414,18 +450,18 @@ export function Barre({
   etiquette?: string;
 }) {
   const couleurs = {
-    accent: "var(--accent)",
+    accent: "var(--accent-vif)",
     warn: "var(--warn)",
     danger: "var(--danger)",
   };
   return (
     <div className="flex items-center gap-3">
       {etiquette && <span className="w-24 shrink-0 text-xs text-muted">{etiquette}</span>}
-      <div className="h-2.5 flex-1 overflow-hidden rounded-pill bg-[var(--surface-2)]">
+      <div className="h-1.5 flex-1 overflow-hidden rounded-pill bg-[var(--surface-2)]">
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${Math.min(100, (valeur / max) * 100)}%` }}
-          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.7, ease: DOUX }}
           className="h-full rounded-pill"
           style={{ background: couleurs[ton] }}
         />
@@ -446,10 +482,16 @@ export function Vide({
 }) {
   return (
     <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-      <span className="mb-4 text-5xl" aria-hidden>{icone}</span>
+      {/* Halo doux derrière l'icône : évite l'effet « émoji posé sur du vide ». */}
+      <span
+        aria-hidden
+        className="panneau-chaud mb-5 grid h-20 w-20 place-items-center rounded-full text-4xl"
+      >
+        {icone}
+      </span>
       <p className="text-lg font-semibold text-ink">{titre}</p>
-      {texte && <p className="mt-1.5 max-w-sm text-sm text-muted text-pretty">{texte}</p>}
-      {action && <div className="mt-5">{action}</div>}
+      {texte && <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted text-pretty">{texte}</p>}
+      {action && <div className="mt-6">{action}</div>}
     </div>
   );
 }
