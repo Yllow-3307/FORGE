@@ -6,6 +6,8 @@ du moteur Python de référence (../moteur/exercices.py).
 À lancer après toute modification de la bibliothèque Python :
     python3 sync_moteur.py
 
+Le moteur Python de référence se trouve dans `moteur-python/`.
+
 Le fichier produit (src/lib/moteur/exercices.ts) ne doit jamais être édité
 à la main : il serait écrasé au prochain lancement.
 """
@@ -14,7 +16,7 @@ import sys
 from pathlib import Path
 
 RACINE = Path(__file__).resolve().parent
-sys.path.insert(0, str(RACINE.parent))
+sys.path.insert(0, str(RACINE / "moteur-python"))
 
 from moteur.exercices import BIBLIOTHEQUE  # noqa: E402
 

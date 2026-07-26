@@ -1,0 +1,10 @@
+# Moteur de référence Python : utile au développement, inutile en production.
+# Vercel ne le traiterait pas comme du code exécutable, mais l'exclure allège
+# le déploiement.
+moteur-python/
+sync_moteur.py
+__pycache__/
+*.py[cod]
+
+# Documentation
+FEUILLE-DE-ROUTE.md

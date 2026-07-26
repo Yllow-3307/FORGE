@@ -44,3 +44,7 @@ next-env.d.ts
 
 # Environnement local
 .env.local
+
+# Caches Python (moteur de référence)
+__pycache__/
+*.py[cod]
