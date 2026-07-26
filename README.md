@@ -78,7 +78,8 @@ webapp/
 │   │   ├── minuteur.tsx       ← compte à rebours du lecteur de séance
 │   │   ├── navigation.tsx     ← en-tête (bureau) + barre basse (mobile)
 │   │   ├── theme.tsx          ← bascule clair/sombre
-│   │   └── apercu-hero.tsx    ← illustration animée
+│   │   ├── apercu-hero.tsx    ← illustration animée
+│   │   └── apercu-piliers.tsx ← aperçu des 4 piliers (état vide de l'accueil)
 │   └── lib/
 │       ├── donnees/
 │       │   ├── skills.ts      ← 16 figures et leurs paliers
@@ -122,7 +123,7 @@ validée par le test de parité.
 
 | Écran | Contenu |
 |---|---|
-| **Accueil** | Série de séances consécutives, séance du jour, tableau de bord composé de widgets (grand carré, petit carré, rectangle) que l'on ajoute, déplace et redimensionne |
+| **Accueil** | Série de séances consécutives, séance du jour, tableau de bord composé de widgets (grand carré, petit carré, rectangle) que l'on ajoute, déplace et redimensionne. Avant tout profil : aperçu illustré des 4 piliers (force, endurance, nutrition, hydratation) |
 | **Séance** | Topo avec 3 consignes, puis lecteur plein écran : échauffement chronométré, séance (minuteur pour les blocs en temps, validation de séries sinon), étirements ciblés sur les muscles sollicités, récapitulatif avec pourcentage d'accomplissement et ressenti |
 | **Nutrition** | Score bouffe et score hydra, journal des repas (base d'aliments ou saisie manuelle), suggestions chiffrées pour combler l'écart avec les cibles |
 | **Programme** | Position dans le cycle, découpage en phases, calendrier navigable semaine par semaine |

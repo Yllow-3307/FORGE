@@ -11,9 +11,11 @@ import { useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bouton, Carte, Vide, cascade, enfantCascade, cx } from "@/components/ui";
+import { ApercuPiliers } from "@/components/apercu-piliers";
 import { useSurvolCarte } from "@/hooks/useCoarsePointer";
 import { CATALOGUE_WIDGETS, CLASSES_TAILLE, RendreWidget } from "@/components/widgets";
 import { useApp, libelleSeance } from "@/lib/useApp";
+import { stockageDistant } from "@/lib/stockage";
 import { majReglages, type TailleWidget, type TypeWidget, type Widget } from "@/lib/suivi";
 
 export default function Accueil() {
@@ -70,14 +72,67 @@ export default function Accueil() {
 
   if (!fiche) {
     return (
-      <Carte>
-        <Vide
-          icone="⚒️"
-          titre="Bienvenue"
-          texte="Créez votre profil : 18 paramètres suffisent à bâtir un programme complet, calé sur vos vrais horaires et votre matériel."
-          action={<Link href="/profil"><Bouton>Créer mon programme</Bouton></Link>}
-        />
-      </Carte>
+      <motion.div
+        variants={cascade}
+        initial="initial"
+        animate="animate"
+        className="space-y-4 sm:space-y-5"
+      >
+        {/* ----------------------------- Accueil ---------------------------- */}
+        <motion.section variants={enfantCascade}>
+          <Carte fort className="carte-editoriale relative overflow-hidden">
+            {/* Même halo corail que l'en-tête de série : la page vide et la
+                page remplie appartiennent visiblement au même écran. */}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute -right-24 -top-28 h-64 w-64 rounded-full
+                         bg-[radial-gradient(circle,var(--accent-soft-fort),transparent_70%)] blur-2xl"
+            />
+            <div className="relative">
+              <Vide
+                icone="⚒️"
+                titre="Bienvenue"
+                texte="Créez votre profil : 18 paramètres suffisent à bâtir un programme complet, calé sur vos vrais horaires et votre matériel."
+                action={<Link href="/profil"><Bouton taille="lg">Créer mon programme</Bouton></Link>}
+              />
+            </div>
+          </Carte>
+        </motion.section>
+
+        {/* ------------------------- Les 4 piliers -------------------------- */}
+        <motion.section variants={enfantCascade} className="space-y-3">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-1 pt-1">
+            <h2 className="etiquette">Ce que FORGE calcule pour vous</h2>
+            {/* Mention indispensable : sans elle, les chiffres des vignettes
+                passeraient pour un programme déjà personnalisé. */}
+            <p className="text-xs text-faint">Exemples chiffrés, à titre d&apos;illustration</p>
+          </div>
+          <ApercuPiliers />
+        </motion.section>
+
+        {/* --------------------------- Rappel final ------------------------- */}
+        <motion.section variants={enfantCascade}>
+          <Carte className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 p-5 sm:p-6">
+            <div className="min-w-0">
+              <p className="font-medium">Les quatre blocs sont générés ensemble.</p>
+              <p className="mt-1 text-sm leading-relaxed text-muted text-pretty">
+                Le questionnaire prend cinq minutes. {" "}
+                {/* Le mode de stockage dépend de la configuration, pas d'un choix
+                    de l'utilisateur : on annonce celui qui est réellement actif
+                    plutôt qu'une promesse de confidentialité invérifiable. */}
+                {stockageDistant()
+                  ? "Vos données sont synchronisées sur votre compte."
+                  : "Vos données restent sur cet appareil."}
+              </p>
+            </div>
+            <Link href="/profil" className="max-sm:w-full">
+              <Bouton taille="lg" pleineLargeur={true} className="sm:w-auto">
+                Commencer →
+              </Bouton>
+            </Link>
+          </Carte>
+        </motion.section>
+      </motion.div>
     );
   }
 
