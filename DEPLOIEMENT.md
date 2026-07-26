@@ -87,6 +87,17 @@ git push -u origin main
 
 Vous obtenez une adresse du type `https://forge-xxxx.vercel.app`.
 
+### 2.3 Désactiver la protection Vercel *(indispensable)*
+
+Vercel verrouille les nouveaux projets : l'adresse renvoie vers une page de
+connexion tant que ce réglage est actif. Cela bloque aussi le manifeste PWA,
+donc l'installation sur téléphone.
+
+**Settings → Deployment Protection → Vercel Authentication → Disabled → Save.**
+
+Vérifiez ensuite **en navigation privée** : votre session Vercel masquerait
+le problème.
+
 À chaque `git push`, Vercel redéploie automatiquement.
 
 ### 2.3 Installer sur votre téléphone
@@ -205,6 +216,7 @@ sans activité**. Il se réveille en une visite, sans perte de données.
 | Build en échec sur Vercel | Erreur de types | Lancer `npm run build` en local pour voir l'erreur |
 | Écran Compte : « Aucun compte nécessaire » | Variables absentes | Vérifier les deux variables sur Vercel, puis redéployer |
 | Connexion refusée | Redirections non configurées | Étape 3.6 |
+| Page de connexion Vercel | Protection activée par défaut | Settings → Deployment Protection → Disabled |
 | Pas d'invite d'installation | HTTP, ou déjà installée | Exige HTTPS ; sur iPhone, passer par Partager |
 | Modifications invisibles | Cache du service worker | Recharger avec `Ctrl+Maj+R` |
 | Les rappels ne partent pas | Permission refusée | Paramètres → Autoriser ; l'app doit rester ouverte ou installée |

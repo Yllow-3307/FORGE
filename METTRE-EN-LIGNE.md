@@ -99,9 +99,34 @@ félicitations avec un aperçu.
 
 Votre adresse : **`https://forge-xxxx.vercel.app`**
 
-### 2.4 Vérifier
+### 2.4 Rendre le site public *(indispensable)*
 
-Ouvrez l'adresse. Vous devez voir l'écran d'accueil FORGE avec « Bienvenue ».
+**Vercel protège les nouveaux projets par défaut.** Tant que ce réglage est
+actif, l'adresse renvoie vers une page de connexion Vercel : personne ne peut
+ouvrir l'application, **pas même vous depuis votre téléphone**.
+
+Pour le désactiver :
+
+1. Dans votre projet Vercel → **Settings** (onglet du haut)
+2. Menu de gauche → **Deployment Protection**
+3. Section **Vercel Authentication** → basculer sur **Disabled**
+4. **Save**
+
+Le changement est immédiat, aucun redéploiement n'est nécessaire.
+
+> **Est-ce risqué ?** Non. Cette protection sert aux entreprises qui
+> déploient des versions de test confidentielles. Une application destinée à
+> être utilisée doit être publique. Vos données restent protégées par
+> ailleurs : elles vivent dans votre navigateur, ou derrière l'authentification
+> Supabase si vous l'activez.
+
+### 2.5 Vérifier
+
+Ouvrez l'adresse **dans une fenêtre de navigation privée** — c'est le seul
+moyen de voir le site comme un visiteur, puisque votre session Vercel
+masquerait le problème.
+
+Vous devez voir l'écran d'accueil FORGE avec « Bienvenue ».
 
 À partir de maintenant, **chaque `git push` redéploie automatiquement**.
 
@@ -162,6 +187,9 @@ En résumé :
 | `Permission denied` | Mauvais compte | Vérifier le pseudo dans l'URL |
 | Dépôt absent dans Vercel | Droits d'accès | **Adjust GitHub App Permissions** |
 | Build en échec | Erreur de code | Lancer `npm run build` en local pour voir l'erreur |
+| Page de connexion Vercel au lieu de l'app | Protection activée par défaut | Étape 2.4 |
+| Le site marche pour moi mais pas pour les autres | Même cause | Étape 2.4, puis tester en navigation privée |
+| Impossible d'installer sur le téléphone | Le manifeste est bloqué par la protection | Étape 2.4 |
 | Pas d'invite d'installation | HTTP, ou déjà installée | Exige HTTPS ; sur iPhone passer par Partager |
 
 ---
