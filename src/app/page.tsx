@@ -58,7 +58,7 @@ export default function Accueil() {
 
   if (chargement) {
     return (
-      <div className="grid min-h-[60vh] place-items-center gap-4 text-center">
+      <div className="grid min-h-[60dvh] place-items-center gap-4 text-center">
         <div
           role="status" aria-label="Chargement en cours"
           className="h-9 w-9 animate-spin rounded-full border-2 border-[var(--border-strong)] border-t-[var(--accent)]"
