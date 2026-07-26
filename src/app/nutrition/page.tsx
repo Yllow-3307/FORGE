@@ -12,6 +12,7 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bouton, Carte, Pastille, Saisie, Vide, cx } from "@/components/ui";
 import { Anneau } from "@/components/widgets";
+import { Bouteille } from "@/components/bouteille";
 import { useApp } from "@/lib/useApp";
 import {
   ajouterEau, ajouterRepas, ajouterRepasManuel, aujourdhui, retirerRepas,
@@ -24,6 +25,7 @@ import {
 const REPAS: { id: EntreeRepas["repas"]; nom: string; emoji: string }[] = [
   { id: "petit_dejeuner", nom: "Petit-déjeuner", emoji: "🌅" },
   { id: "dejeuner", nom: "Déjeuner", emoji: "🍽️" },
+  { id: "gouter", nom: "Goûter", emoji: "🥐" },
   { id: "diner", nom: "Dîner", emoji: "🌙" },
   { id: "collation", nom: "Collation", emoji: "🍏" },
 ];
@@ -112,20 +114,20 @@ export default function PageNutrition() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 sm:space-y-5">
       {/* ---------------------------- Scores ---------------------------- */}
       <section className="grid gap-3 sm:grid-cols-2">
-        <Carte className="flex items-center gap-5 p-6">
+        <Carte className="flex items-center gap-4 p-5 sm:gap-5 sm:p-6">
           <Anneau pourcentage={scores.nutrition} taille={92}>
             <span className="text-lg font-bold tnum">{scores.nutrition}%</span>
           </Anneau>
           <div className="min-w-0">
-            <p className="text-[0.7rem] font-semibold uppercase tracking-wider text-faint">
-              Ton score bouffe
-            </p>
-            <p className="mt-1 text-2xl font-bold tnum">
+            <p className="etiquette">Ton score bouffe</p>
+            <p className="mt-1 chiffre text-3xl leading-none">
               {Math.round(totaux.kcal)}
-              <span className="text-sm font-normal text-muted"> / {n.kcal} kcal</span>
+              <span className="ml-1 text-[0.34em] font-normal uppercase tracking-widest text-muted">
+                / {n.kcal} kcal
+              </span>
             </p>
             <p className="mt-1 text-xs text-muted text-pretty">
               {scores.nutrition >= 95
@@ -137,20 +139,17 @@ export default function PageNutrition() {
           </div>
         </Carte>
 
-        <Carte className="flex items-center gap-5 p-6">
-          <Anneau pourcentage={scores.hydratation} taille={92} couleur="#5aa9d6">
-            <span className="text-lg font-bold tnum">{scores.hydratation}%</span>
-          </Anneau>
+        <Carte className="flex items-center gap-4 p-5 sm:gap-5 sm:p-6">
+          <Bouteille pourcentage={scores.hydratation} hauteur={124} afficherValeur={false} />
           <div className="min-w-0 flex-1">
-            <p className="text-[0.7rem] font-semibold uppercase tracking-wider text-faint">
-              Ton score hydra
-            </p>
-            <p className="mt-1 text-2xl font-bold tnum">
+            <p className="etiquette">Ton score hydra</p>
+            <p className="mt-1 chiffre text-3xl leading-none">
               {(jour.hydratationMl / 1000).toFixed(1)}
-              <span className="text-sm font-normal text-muted">
-                {" "}/ {(cibleHydratation / 1000).toFixed(1)} L
+              <span className="ml-1 text-[0.34em] font-normal uppercase tracking-widest text-muted">
+                / {(cibleHydratation / 1000).toFixed(1)} L
               </span>
             </p>
+            <p className="mt-1 text-xs text-muted">{scores.hydratation} % de la cible</p>
             <div className="mt-2 flex gap-1.5">
               {[250, 500].map((ml) => (
                 <button
@@ -175,7 +174,7 @@ export default function PageNutrition() {
       </section>
 
       {/* ---------------------------- Macros ---------------------------- */}
-      <Carte className="p-6">
+      <Carte className="p-5 sm:p-6">
         <h2 className="mb-4 font-bold">Macros du jour</h2>
         <div className="grid gap-4 sm:grid-cols-3">
           {[
@@ -420,7 +419,7 @@ export default function PageNutrition() {
 
       {/* -------------------------- Suggestions -------------------------- */}
       {scores.nutrition < 95 && suggestions.length > 0 && (
-        <Carte className="p-6">
+        <Carte className="p-5 sm:p-6">
           <h2 className="font-bold">Mange encore</h2>
           <p className="mt-1 text-sm text-muted">
             Pour atteindre tes cibles du jour, voici ce qui manque le plus.
@@ -445,7 +444,7 @@ export default function PageNutrition() {
       )}
 
       {scores.nutrition >= 95 && (
-        <Carte className="p-6">
+        <Carte className="p-5 sm:p-6">
           <div className="flex items-center gap-3">
             <span className="text-2xl">✅</span>
             <p className="text-sm text-pretty">

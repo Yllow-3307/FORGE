@@ -169,7 +169,7 @@ export default function PageSeance() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 sm:space-y-5">
       <AnimatePresence mode="wait">
         {/* ============================ TOPO ============================ */}
         {phase === "topo" && (
@@ -178,7 +178,7 @@ export default function PageSeance() {
             initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -14 }} className="space-y-4"
           >
-            <Carte className="p-6 sm:p-8">
+            <Carte className="p-5 sm:p-8">
               <Pastille ton="accent">{seance.type === "force" ? "Renforcement" : "Endurance"}</Pastille>
               <h1 className="mt-3 text-2xl font-bold sm:text-3xl">
                 Aujourd&apos;hui c&apos;est <span className="text-[var(--accent)]">{seance.nom}</span>
@@ -188,7 +188,7 @@ export default function PageSeance() {
               </p>
             </Carte>
 
-            <Carte className="p-6">
+            <Carte className="p-5 sm:p-6">
               <h2 className="font-bold">On se concentre sur</h2>
               <ol className="mt-4 space-y-3">
                 {consignes.map((c, i) => (
@@ -219,7 +219,7 @@ export default function PageSeance() {
               </Bouton>
             </Carte>
 
-            <Carte className="p-5">
+            <Carte className="p-4 sm:p-5">
               <h3 className="mb-3 text-sm font-semibold">Au programme</h3>
               <ul className="space-y-1.5">
                 {blocs.map((b, i) => (
@@ -443,7 +443,7 @@ export default function PageSeance() {
             initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -14 }}
             className="space-y-4"
           >
-            <Carte className="p-6">
+            <Carte className="p-5 sm:p-6">
               <Pastille ton="accent">Retour au calme</Pastille>
               <h2 className="mt-3 text-xl font-bold">Étirements adaptés à cette séance</h2>
               <p className="mt-1 text-sm text-muted">
@@ -509,7 +509,7 @@ export default function PageSeance() {
               </div>
             </Carte>
 
-            <Carte className="p-6">
+            <Carte className="p-5 sm:p-6">
               <h3 className="font-semibold">Ton ressenti post-séance</h3>
 
               <div className="mt-4">

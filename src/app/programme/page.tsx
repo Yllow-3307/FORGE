@@ -3,17 +3,20 @@
 /**
  * programme/page.tsx — Écran Programme.
  *
- * Position dans le cycle, découpage en phases, calendrier semaine par semaine
- * et compte à rebours jusqu'au prochain objectif.
+ * Position dans le cycle, découpage en phases et calendrier réorganisable.
+ * Chaque séance est cliquable et mène à son détail.
  */
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { Bouton, Carte, Encart, Pastille, Vide, cx } from "@/components/ui";
+import { useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
+import { Bouton, Carte, Encart, GrandChiffre, Pastille, Vide, cx } from "@/components/ui";
 import { useApp } from "@/lib/useApp";
 import { cap } from "@/lib/moteur/noyau";
-import { JOURS } from "@/lib/moteur/types";
+import { JOURS, type Jour, type Seance } from "@/lib/moteur/types";
+import { deplacerSeance, lirePlanning, reinitialiserPlanning } from "@/lib/suivi";
+import { useVersionStockage } from "@/lib/store";
 
 /**
  * Découpe le cycle en phases : chaque bloc d'accumulation suivi de sa semaine
@@ -33,12 +36,44 @@ function decouperPhases(types: ("accumulation" | "deload")[]) {
 
 export default function PageProgramme() {
   const { chargement, fiche, programme, semaine } = useApp();
+  const router = useRouter();
+  const version = useVersionStockage();
   const [semaineVue, setSemaineVue] = useState<number | null>(null);
+  const [modeEdition, setModeEdition] = useState(false);
+  const [seanceDeplacee, setSeanceDeplacee] = useState<string | null>(null);
 
   const phases = useMemo(
     () => (programme ? decouperPhases(programme.cycle.map((c) => c.type)) : []),
     [programme],
   );
+
+  const vue = semaineVue ?? semaine;
+  const donneesSemaine = programme?.cycle[vue - 1] ?? programme?.semaineType;
+
+  /**
+   * Séances de la semaine, réparties par jour en tenant compte des
+   * déplacements manuels enregistrés.
+   */
+  const parJour = useMemo(() => {
+    void version;
+    const carte = new Map<Jour, Seance[]>(JOURS.map((j) => [j, []]));
+    if (!donneesSemaine) return carte;
+
+    const deplacements = lirePlanning()[String(vue)] ?? {};
+    for (const jourData of donneesSemaine.jours) {
+      for (const s of jourData.seances) {
+        const cible = (deplacements[s.nom] as Jour) ?? jourData.jour;
+        const liste = carte.get(cible);
+        if (liste) liste.push(s);
+      }
+    }
+    return carte;
+  }, [donneesSemaine, vue, version]);
+
+  const aDesDeplacements = useMemo(() => {
+    void version;
+    return Object.keys(lirePlanning()[String(vue)] ?? {}).length > 0;
+  }, [vue, version]);
 
   if (chargement) {
     return (
@@ -48,11 +83,11 @@ export default function PageProgramme() {
     );
   }
 
-  if (!fiche || !programme) {
+  if (!fiche || !programme || !donneesSemaine) {
     return (
       <Carte>
         <Vide
-          icone="📆" titre="Aucun programme"
+          icone="⚒️" titre="Aucun programme"
           texte="Créez votre profil pour générer un cycle complet."
           action={<Link href="/profil"><Bouton>Créer mon profil</Bouton></Link>}
         />
@@ -63,24 +98,26 @@ export default function PageProgramme() {
   const total = programme.meta.dureeCycle;
   const restantes = Math.max(0, total - semaine);
   const pct = Math.round((semaine / total) * 100);
-  const vue = semaineVue ?? semaine;
-  const donneesSemaine = programme.cycle[vue - 1] ?? programme.semaineType;
+
+  /** Déplace la séance sélectionnée vers le jour choisi. */
+  const poser = (jour: Jour) => {
+    if (!seanceDeplacee) return;
+    deplacerSeance(vue, seanceDeplacee, jour);
+    setSeanceDeplacee(null);
+  };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 sm:space-y-5">
       {/* ------------------------- Position cycle ------------------------- */}
-      <Carte className="p-6 sm:p-8">
-        <p className="text-[0.7rem] font-semibold uppercase tracking-wider text-faint">
-          Tu en es là
-        </p>
-        <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <p className="text-4xl font-bold tnum">
-            {semaine}<span className="text-xl font-normal text-muted"> / {total}</span>
-          </p>
-          <p className="text-sm text-muted">semaines réalisées</p>
-        </div>
+      <Carte className="p-5 sm:p-8">
+        <GrandChiffre
+          label="Tu en es là"
+          valeur={semaine}
+          unite={`/ ${total} semaines`}
+          taille="lg"
+        />
 
-        <div className="mt-4 h-3 overflow-hidden rounded-pill bg-[var(--surface-2)]">
+        <div className="mt-4 h-2.5 overflow-hidden rounded-pill bg-[var(--surface-2)]">
           <motion.div
             initial={{ width: 0 }} animate={{ width: `${pct}%` }}
             transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
@@ -96,15 +133,15 @@ export default function PageProgramme() {
       </Carte>
 
       {/* ------------------------------ Phases ---------------------------- */}
-      <Carte className="p-6">
-        <h2 className="font-bold">
+      <Carte className="p-5 sm:p-6">
+        <h2 className="font-semibold">
           Tu as {phases.length} phase{phases.length > 1 ? "s" : ""}
         </h2>
-        <p className="mt-1 text-sm text-muted">
+        <p className="mt-1 text-sm text-muted text-pretty">
           Chaque phase monte en volume puis se termine par une semaine de décharge,
           pendant laquelle les progrès se consolident.
         </p>
-        <div className="mt-4 space-y-2.5">
+        <div className="mt-4 space-y-2">
           {phases.map((p, i) => {
             const enCours = semaine >= p.debut && semaine <= p.fin;
             const passee = semaine > p.fin;
@@ -112,16 +149,16 @@ export default function PageProgramme() {
               <div
                 key={i}
                 className={cx(
-                  "flex items-center gap-4 rounded-2xl px-4 py-3",
+                  "flex items-center gap-3 rounded-2xl px-4 py-3",
                   enCours ? "bg-[var(--accent-soft)]" : "bg-[var(--surface-2)]",
                 )}
               >
                 <span
                   className={cx(
-                    "grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-bold",
-                    enCours ? "bg-[var(--accent)] text-[var(--accent-contrast)]"
-                      : passee ? "bg-[var(--accent)]/40 text-[var(--accent-contrast)]"
-                        : "bg-[var(--surface)] text-muted",
+                    "grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-semibold",
+                    enCours || passee
+                      ? "bg-[var(--accent)] text-[var(--accent-contrast)]"
+                      : "bg-[var(--surface)] text-muted",
                   )}
                 >
                   {passee ? "✓" : i + 1}
@@ -142,9 +179,9 @@ export default function PageProgramme() {
       </Carte>
 
       {/* ---------------------------- Calendrier -------------------------- */}
-      <Carte className="p-6">
+      <Carte className="p-5 sm:p-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-bold">Calendrier du programme</h2>
+          <h2 className="font-semibold">Calendrier</h2>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setSemaineVue(Math.max(1, vue - 1))}
@@ -154,7 +191,7 @@ export default function PageProgramme() {
             >
               ←
             </button>
-            <span className="min-w-24 text-center text-sm font-medium tnum">
+            <span className="min-w-20 text-center text-sm font-medium tnum">
               Semaine {vue}
             </span>
             <button
@@ -169,16 +206,16 @@ export default function PageProgramme() {
         </div>
 
         {/* Vue d'ensemble des semaines */}
-        <div className="mb-5 flex flex-wrap gap-1.5">
+        <div className="mb-4 flex flex-wrap gap-1.5">
           {programme.cycle.map((c) => (
             <button
               key={c.semaine}
               onClick={() => setSemaineVue(c.semaine)}
               aria-label={`Semaine ${c.semaine}`}
               className={cx(
-                "h-9 w-9 rounded-xl text-xs font-semibold tnum transition",
+                "h-8 w-8 rounded-xl text-xs tnum transition",
                 c.semaine === vue
-                  ? "bg-[var(--accent)] text-[var(--accent-contrast)]"
+                  ? "bg-[var(--accent)] font-semibold text-[var(--accent-contrast)]"
                   : c.type === "deload"
                     ? "bg-[var(--warn-soft)] text-[var(--warn)]"
                     : c.semaine < semaine
@@ -199,70 +236,133 @@ export default function PageProgramme() {
           </div>
         )}
 
-        {/* Détail de la semaine sélectionnée */}
+        {/* Barre d'organisation */}
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs text-muted">
+            {modeEdition
+              ? seanceDeplacee
+                ? "Choisissez le jour d'accueil."
+                : "Touchez une séance pour la déplacer."
+              : "Touchez une séance pour voir son détail."}
+          </p>
+          <div className="flex gap-2">
+            {aDesDeplacements && modeEdition && (
+              <Bouton
+                variante="fantome" taille="sm"
+                onClick={() => { reinitialiserPlanning(vue); setSeanceDeplacee(null); }}
+              >
+                Réinitialiser
+              </Bouton>
+            )}
+            <Bouton
+              variante={modeEdition ? "principal" : "fantome"}
+              taille="sm"
+              onClick={() => { setModeEdition((m) => !m); setSeanceDeplacee(null); }}
+            >
+              {modeEdition ? "Terminer" : "Organiser"}
+            </Bouton>
+          </div>
+        </div>
+
+        {/* Jours */}
         <div className="space-y-2">
           {JOURS.map((j) => {
-            const jourData = donneesSemaine.jours.find((x) => x.jour === j);
-            const seances = jourData?.seances ?? [];
+            const seances = parJour.get(j) ?? [];
+            const cibleActive = modeEdition && seanceDeplacee !== null;
             return (
               <div
                 key={j}
                 className={cx(
-                  "flex flex-wrap items-center gap-x-4 gap-y-1 rounded-2xl px-4 py-3",
+                  "rounded-2xl transition",
                   seances.length ? "bg-[var(--surface-2)]" : "bg-transparent",
+                  cibleActive && "border-2 border-dashed border-[var(--accent)] bg-[var(--accent-soft)]",
                 )}
               >
-                <span className="w-24 shrink-0 text-sm font-medium">{cap(j)}</span>
-                {seances.length === 0 ? (
-                  <span className="text-sm text-faint">Repos</span>
-                ) : (
-                  <div className="flex min-w-0 flex-1 flex-wrap gap-2">
-                    {seances.map((s, i) => (
-                      <span
-                        key={i}
-                        className="flex items-center gap-2 rounded-pill bg-[var(--surface)] px-3 py-1 text-xs"
-                      >
-                        <span>{s.type === "force" ? "🤸" : "🏃"}</span>
-                        <span className="font-medium">{s.nom}</span>
-                        <span className="tnum text-muted">{s.debut} · {s.dureeMin} min</span>
-                      </span>
-                    ))}
-                  </div>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
+                  <span className="w-20 shrink-0 text-sm font-medium">{cap(j)}</span>
+
+                  {seances.length === 0 ? (
+                    <span className="text-sm text-faint">Repos</span>
+                  ) : (
+                    <div className="flex min-w-0 flex-1 flex-wrap gap-2">
+                      {seances.map((s, i) => {
+                        const selectionnee = seanceDeplacee === s.nom;
+                        return (
+                          <button
+                            key={`${s.nom}-${i}`}
+                            onClick={() => {
+                              if (modeEdition) {
+                                setSeanceDeplacee(selectionnee ? null : s.nom);
+                              } else if (vue === semaine) {
+                                router.push("/seance");
+                              } else {
+                                setSemaineVue(semaine);
+                              }
+                            }}
+                            className={cx(
+                              "flex items-center gap-2 rounded-pill px-3 py-1.5 text-xs transition",
+                              selectionnee
+                                ? "bg-[var(--accent)] text-[var(--accent-contrast)]"
+                                : "bg-[var(--surface)] hover:bg-[var(--accent-soft)]",
+                            )}
+                          >
+                            <span>{s.type === "force" ? "🤸" : "🏃"}</span>
+                            <span className="font-medium">{s.nom}</span>
+                            <span className="tnum opacity-70">{s.debut}</span>
+                            {modeEdition && <span className="opacity-60">⇅</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Zone de dépôt : un vrai bouton, donc accessible au clavier
+                    et insensible aux clics interceptés par les enfants. */}
+                {cibleActive && (
+                  <button
+                    type="button"
+                    onClick={() => poser(j)}
+                    className="w-full rounded-b-2xl border-t border-dashed border-[var(--accent)] px-4 py-2 text-xs font-medium text-[var(--accent)] transition hover:bg-[var(--accent-soft)]"
+                  >
+                    Déplacer ici
+                  </button>
                 )}
               </div>
             );
           })}
         </div>
 
+        <AnimatePresence>
+          {aDesDeplacements && (
+            <motion.p
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mt-3 overflow-hidden text-xs text-muted text-pretty"
+            >
+              Cette semaine a été réorganisée manuellement. Le programme sous-jacent
+              n&apos;est pas modifié : seuls les jours d&apos;exécution changent.
+            </motion.p>
+          )}
+        </AnimatePresence>
+
         {vue === semaine && (
-          <Link href="/seance" className="mt-5 block">
+          <Link href="/seance" className="mt-4 block">
             <Bouton pleineLargeur>Voir la séance du jour</Bouton>
           </Link>
         )}
       </Carte>
 
-      {/* --------------------------- Ajustements -------------------------- */}
-      {donneesSemaine.alertes.length > 0 && (
-        <Carte className="p-6">
-          <h2 className="mb-3 font-bold">Arbitrages du moteur</h2>
-          <ul className="space-y-2">
-            {donneesSemaine.alertes.map((a, i) => (
-              <li key={i} className="text-sm leading-relaxed text-muted text-pretty">
-                • {a}
-              </li>
-            ))}
-          </ul>
-        </Carte>
-      )}
-
-      <Carte className="p-6">
-        <h2 className="mb-3 font-bold">Réglages du cycle</h2>
-        <div className="flex flex-wrap gap-3">
+      {/* --------------------------- Réglages ----------------------------- */}
+      <Carte className="p-5 sm:p-6">
+        <h2 className="mb-3 font-semibold">Réglages du cycle</h2>
+        <div className="flex flex-wrap gap-2">
           <Link href="/profil">
-            <Bouton variante="fantome">Modifier mon profil</Bouton>
+            <Bouton variante="fantome" taille="sm">Modifier mon profil</Bouton>
           </Link>
           <Link href="/parametres">
-            <Bouton variante="fantome">Changer de programme</Bouton>
+            <Bouton variante="fantome" taille="sm">Changer de programme</Bouton>
           </Link>
         </div>
       </Carte>

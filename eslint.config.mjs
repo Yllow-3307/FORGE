@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Moteur Python de référence : scripts Node hors application,
+    // où `require` est légitime.
+    "moteur-python/**",
   ]),
 ]);
 

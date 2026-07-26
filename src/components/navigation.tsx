@@ -96,7 +96,7 @@ export function Navigation() {
       </header>
 
       {/* ---------- Barre supérieure mobile ---------- */}
-      <header className="sticky top-0 z-40 flex items-center justify-between px-4 py-3 md:hidden">
+      <header className="sticky top-0 z-40 flex items-center justify-between px-3 py-2 md:hidden">
         <Link href="/">
           <MarqueForge />
         </Link>
@@ -136,7 +136,7 @@ export function Navigation() {
           )}
         </AnimatePresence>
 
-        <div className="glass-strong flex items-center justify-around rounded-xl2 px-1 py-2">
+        <div className="glass-strong flex items-center justify-around rounded-xl2 px-1 py-1.5">
           {LIENS_PRINCIPAUX.map((l) => {
             const actif = estActif(l.href);
             return (
@@ -157,8 +157,8 @@ export function Navigation() {
                     className="absolute inset-0 -z-10 rounded-2xl bg-[var(--accent-soft)]"
                   />
                 )}
-                <span className="text-lg" aria-hidden>{l.icone}</span>
-                <span className="w-full truncate text-center text-[0.62rem] font-medium">
+                <span className="text-base" aria-hidden>{l.icone}</span>
+                <span className="w-full truncate text-center text-[0.58rem]">
                   {l.libelle}
                 </span>
               </Link>
@@ -175,8 +175,8 @@ export function Navigation() {
               secondaireActif || menuOuvert ? "text-[var(--accent)]" : "text-muted",
             )}
           >
-            <span className="text-lg" aria-hidden>{menuOuvert ? "✕" : "⋯"}</span>
-            <span className="text-[0.62rem] font-medium">Plus</span>
+            <span className="text-base" aria-hidden>{menuOuvert ? "✕" : "⋯"}</span>
+            <span className="text-[0.58rem]">Plus</span>
           </button>
         </div>
       </nav>

@@ -73,7 +73,7 @@ export default function PageCompte() {
   if (!authDisponible) {
     return (
       <div className="mx-auto max-w-lg space-y-4">
-        <Carte className="p-6 sm:p-8">
+        <Carte className="p-5 sm:p-8">
           <span className="text-3xl">📴</span>
           <h1 className="mt-3 text-xl font-bold">Aucun compte nécessaire</h1>
           <p className="mt-2 text-sm leading-relaxed text-muted text-pretty">
@@ -108,7 +108,7 @@ export default function PageCompte() {
   if (utilisateur) {
     return (
       <div className="mx-auto max-w-lg space-y-4">
-        <Carte className="p-6 sm:p-8">
+        <Carte className="p-5 sm:p-8">
           <span className="text-3xl">✅</span>
           <h1 className="mt-3 text-xl font-bold">Vous êtes connecté</h1>
           <p className="mt-2 text-sm text-muted">{utilisateur.email}</p>
@@ -139,7 +139,7 @@ export default function PageCompte() {
 
   return (
     <div className="mx-auto max-w-lg space-y-4">
-      <Carte className="p-6 sm:p-8">
+      <Carte className="p-5 sm:p-8">
         <div className="mb-5 flex items-center gap-3">
           <LogoForge taille={44} className="rounded-2xl" />
           <div>
@@ -254,7 +254,7 @@ export default function PageCompte() {
         </div>
       </Carte>
 
-      <Carte className="p-5">
+      <Carte className="p-4 sm:p-5">
         <p className="text-sm text-muted text-pretty">
           Vous pouvez aussi utiliser l&apos;application <strong>sans compte</strong> :
           vos données restent alors sur cet appareil.{" "}

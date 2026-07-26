@@ -261,6 +261,18 @@ export async function enregistrerPoids(m: Omit<MesurePoids, "id">): Promise<Mesu
   return complete;
 }
 
+export async function supprimerPoids(id: string): Promise<void> {
+  const sb = supabase();
+  if (sb) {
+    const { error } = await avecDelai(
+      sb.from("mesures_poids").delete().eq("id", id),
+      { error: new Error("délai dépassé") } as never,
+    );
+    if (!error) return;
+  }
+  ecrireLocal(CLE_POIDS, lireLocal<MesurePoids>(CLE_POIDS).filter((m) => m.id !== id));
+}
+
 /* ------------------------------------------------------- Export et import */
 
 export function exporterTout(): string {

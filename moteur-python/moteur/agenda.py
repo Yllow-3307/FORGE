@@ -320,7 +320,7 @@ def structure_repas(p: Profil, jour: str, seance: Creneau | None = None) -> list
     ecart_dej_diner = h_diner - h_dej
     if ecart_dej_diner > 330:  # plus de 5h30 entre les deux
         h_col = h_dej + ecart_dej_diner // 2
-        repas.append({"nom": "Collation après-midi", "heure": h_col, "duree": 10,
+        repas.append({"nom": "Goûter", "heure": h_col, "duree": 10,
                       "lieu": "bureau" if travaille else "domicile", "role": "appoint"})
 
     if seance:

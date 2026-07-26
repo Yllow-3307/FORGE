@@ -166,7 +166,7 @@ export default function PageProfil() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 sm:space-y-5">
       {/* --------------------------- Progression -------------------------- */}
       <div className="flex items-center gap-2 px-1">
         {ETAPES.map((nom, i) => (
@@ -204,7 +204,7 @@ export default function PageProfil() {
         >
           {/* =========================== ÉTAPE 0 ========================== */}
           {etape === 0 && (
-            <Carte className="space-y-5 p-6 sm:p-8">
+            <Carte className="space-y-5 p-5 sm:p-8">
               <div>
                 <h1 className="text-xl font-bold">Parlons de vous</h1>
                 <p className="mt-1 text-sm text-muted">
@@ -266,7 +266,7 @@ export default function PageProfil() {
 
           {/* =========================== ÉTAPE 1 ========================== */}
           {etape === 1 && (
-            <Carte className="space-y-6 p-6 sm:p-8">
+            <Carte className="space-y-6 p-5 sm:p-8">
               <div>
                 <h1 className="text-xl font-bold">Votre objectif</h1>
                 <p className="mt-1 text-sm text-muted">
@@ -301,7 +301,7 @@ export default function PageProfil() {
 
           {/* =========================== ÉTAPE 2 ========================== */}
           {etape === 2 && (
-            <Carte className="space-y-5 p-6 sm:p-8">
+            <Carte className="space-y-5 p-5 sm:p-8">
               <div>
                 <h1 className="text-xl font-bold">Votre matériel</h1>
                 <p className="mt-1 text-sm text-muted">
@@ -328,7 +328,7 @@ export default function PageProfil() {
 
           {/* =========================== ÉTAPE 3 ========================== */}
           {etape === 3 && (
-            <Carte className="space-y-5 p-6 sm:p-8">
+            <Carte className="space-y-5 p-5 sm:p-8">
               <div>
                 <h1 className="text-xl font-bold">Votre semaine</h1>
                 <p className="mt-1 text-sm text-muted">
@@ -468,7 +468,7 @@ export default function PageProfil() {
 
           {/* =========================== ÉTAPE 4 ========================== */}
           {etape === 4 && (
-            <Carte className="space-y-5 p-6 sm:p-8">
+            <Carte className="space-y-5 p-5 sm:p-8">
               <div>
                 <h1 className="text-xl font-bold">Votre alimentation</h1>
                 <p className="mt-1 text-sm text-muted">

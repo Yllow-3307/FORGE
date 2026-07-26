@@ -16,7 +16,7 @@ export interface EntreeRepas {
   alimentId: string;
   nomLibre?: string;      // saisie manuelle hors base
   grammes: number;
-  repas: "petit_dejeuner" | "dejeuner" | "diner" | "collation";
+  repas: "petit_dejeuner" | "dejeuner" | "gouter" | "diner" | "collation";
   kcal: number;
   proteines: number;
   glucides: number;
@@ -39,6 +39,8 @@ export interface ProgresSkill {
   etape: number;                // index de l'étape en cours
   valideeLe?: string;
   actif: boolean;               // suivi affiché dans « Toi »
+  /** true si ajouté automatiquement d'après les mouvements du programme. */
+  auto?: boolean;
 }
 
 export type TailleWidget = "petit" | "grand" | "rectangle";
@@ -66,6 +68,7 @@ export interface Reglages {
 /* ------------------------------------------------------------- Constantes */
 
 const CLE_JOURNAL = "forge:journal";
+const CLE_PLANNING = "forge:planning";
 const CLE_SKILLS = "forge:skills";
 const CLE_REGLAGES = "forge:reglages";
 
@@ -339,6 +342,39 @@ export function totalSeances(): number {
   return lireJournal().filter((j) => j.seanceFaite).length;
 }
 
+/* --------------------------------------------------------- Planning manuel */
+
+/**
+ * Réorganisation manuelle du calendrier.
+ *
+ * Le moteur place les séances au mieux, mais lui seul ne connaît pas les
+ * imprévus. On enregistre donc, par semaine, le jour choisi pour chaque
+ * séance : `{ "3": { "Full body A": "jeudi" } }` déplace cette séance au
+ * jeudi en semaine 3. Le programme sous-jacent n'est pas modifié.
+ */
+export type PlanningManuel = Record<string, Record<string, string>>;
+
+export function lirePlanning(): PlanningManuel {
+  return lire<PlanningManuel>(CLE_PLANNING, {});
+}
+
+export function deplacerSeance(semaine: number, nomSeance: string, jour: string): void {
+  const planning = lirePlanning();
+  const cle = String(semaine);
+  planning[cle] = { ...(planning[cle] ?? {}), [nomSeance]: jour };
+  ecrire(CLE_PLANNING, planning);
+}
+
+export function reinitialiserPlanning(semaine?: number): void {
+  if (semaine === undefined) {
+    ecrire(CLE_PLANNING, {});
+    return;
+  }
+  const planning = lirePlanning();
+  delete planning[String(semaine)];
+  ecrire(CLE_PLANNING, planning);
+}
+
 /* ----------------------------------------------------------------- Skills */
 
 export function lireSkills(): ProgresSkill[] {
@@ -390,7 +426,7 @@ export function majReglages(maj: Partial<Reglages>): Reglages {
 
 export function effacerToutesDonnees(): void {
   if (typeof window === "undefined") return;
-  [CLE_JOURNAL, CLE_SKILLS, CLE_REGLAGES,
+  [CLE_JOURNAL, CLE_SKILLS, CLE_REGLAGES, CLE_PLANNING,
     "forge:fiches", "forge:seances", "forge:poids"]
     .forEach((c) => localStorage.removeItem(c));
   window.dispatchEvent(new CustomEvent("forge:maj", { detail: "tout" }));

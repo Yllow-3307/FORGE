@@ -72,11 +72,11 @@ type Variante = "principal" | "doux" | "fantome" | "danger";
 
 const VARIANTES: Record<Variante, string> = {
   principal:
-    "bg-[var(--accent)] text-[var(--accent-contrast)] shadow-soft hover:brightness-108 active:brightness-95",
+    "bg-[var(--accent)] text-[var(--accent-contrast)] hover:brightness-105 active:brightness-95",
   doux:
     "bg-[var(--accent-soft)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--accent-contrast)]",
   fantome:
-    "glass text-ink hover:border-[var(--accent)]",
+    "glass text-ink hover:border-[var(--border-strong)]",
   danger:
     "bg-[var(--danger-soft)] text-[var(--danger)] hover:bg-[var(--danger)] hover:text-white",
 };
@@ -186,12 +186,48 @@ export function Stat({
 }) {
   return (
     <div className="rounded-2xl bg-[var(--surface-2)] px-4 py-3">
-      <p className="text-[0.7rem] font-medium uppercase tracking-wider text-faint">{label}</p>
-      <p className="mt-0.5 text-xl font-bold tnum leading-tight">
+      <p className="etiquette">{label}</p>
+      <p className="mt-1 chiffre text-2xl leading-none">
         {valeur}
-        {unite && <span className="ml-1 text-xs font-normal text-muted">{unite}</span>}
+        {unite && (
+          <span className="ml-1 text-[0.65rem] font-normal uppercase tracking-widest text-muted">
+            {unite}
+          </span>
+        )}
       </p>
-      {indice && <p className="mt-0.5 text-xs text-muted">{indice}</p>}
+      {indice && <p className="mt-1 text-xs text-muted">{indice}</p>}
+    </div>
+  );
+}
+
+/**
+ * Chiffre mis en avant, façon widget : très grand, graisse fine, unité en
+ * petites capitales. C'est l'élément signature du style.
+ */
+export function GrandChiffre({
+  valeur, unite, label, taille = "md",
+}: {
+  valeur: ReactNode;
+  unite?: string;
+  label?: string;
+  taille?: "sm" | "md" | "lg";
+}) {
+  const tailles = {
+    sm: "text-3xl sm:text-4xl",
+    md: "text-4xl sm:text-5xl",
+    lg: "text-5xl sm:text-6xl",
+  };
+  return (
+    <div>
+      {label && <p className="etiquette mb-1">{label}</p>}
+      <p className={cx("chiffre leading-[0.95]", tailles[taille])}>
+        {valeur}
+        {unite && (
+          <span className="ml-1.5 text-[0.32em] font-normal uppercase tracking-[0.18em] text-muted">
+            {unite}
+          </span>
+        )}
+      </p>
     </div>
   );
 }
@@ -202,8 +238,8 @@ export function Stat({
 
 const CLASSE_CHAMP =
   "w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 "
-  + "text-[0.95rem] text-ink outline-none transition "
-  + "focus:border-[var(--accent)] focus:bg-[var(--surface)] "
+  + "text-[0.95rem] text-ink outline-none transition backdrop-blur-sm "
+  + "focus:border-[var(--border-strong)] focus:bg-[var(--surface)] "
   + "placeholder:text-faint";
 
 export function Champ({

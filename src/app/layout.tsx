@@ -79,10 +79,10 @@ export default function RootLayout({
                 Les marges « safe-area » évitent l'encoche et la barre
                 gestuelle sur iPhone en mode installé. */}
             <main
-              className="mx-auto w-full max-w-6xl px-4 pb-28 pt-6 sm:px-6 md:pb-16"
+              className="mx-auto w-full max-w-6xl px-3 pb-24 pt-3 sm:px-6 sm:pt-6 md:pb-16"
               style={{
-                paddingLeft: "max(1rem, env(safe-area-inset-left))",
-                paddingRight: "max(1rem, env(safe-area-inset-right))",
+                paddingLeft: "max(0.75rem, env(safe-area-inset-left))",
+                paddingRight: "max(0.75rem, env(safe-area-inset-right))",
               }}
             >
               {children}

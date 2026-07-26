@@ -77,41 +77,41 @@ export default function Accueil() {
   }
 
   return (
-    <motion.div variants={cascade} initial="initial" animate="animate" className="space-y-5">
+    <motion.div variants={cascade} initial="initial" animate="animate" className="space-y-4 sm:space-y-5">
       {/* -------------------------- En-tête série -------------------------- */}
       <motion.section variants={enfantCascade}>
         <Carte className="relative overflow-hidden p-6 sm:p-8">
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
             <div className="flex items-center gap-3">
               <motion.span
-                className="text-5xl"
-                animate={serie > 0 ? { scale: [1, 1.12, 1] } : {}}
-                transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+                className="text-4xl"
+                animate={serie > 0 ? { scale: [1, 1.1, 1] } : {}}
+                transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
               >
                 🔥
               </motion.span>
               <div>
-                <p className="text-4xl font-bold tnum leading-none">{serie}</p>
-                <p className="text-xs text-muted">
+                <p className="chiffre text-4xl leading-none sm:text-5xl">{serie}</p>
+                <p className="mt-1 text-xs text-muted">
                   {`séance${serie > 1 ? "s" : ""} d'affilée`}
                 </p>
               </div>
             </div>
 
-            <div className="h-12 w-px bg-[var(--border)] max-sm:hidden" />
+            <div className="h-14 w-px bg-[var(--border)] max-sm:hidden" />
 
             <div className="min-w-0 flex-1">
-              <p className="text-[0.7rem] font-semibold uppercase tracking-wider text-faint">
-                Aujourd&apos;hui c&apos;est
-              </p>
-              <p className="mt-0.5 text-lg font-bold leading-tight text-balance sm:text-xl">
+              <p className="etiquette">Aujourd&apos;hui c&apos;est</p>
+              <p className="mt-1 text-lg font-medium leading-tight text-balance lueur-texte sm:text-2xl">
                 {libelleSeance(seancesDuJour)}
               </p>
             </div>
 
             {!repos && (
-              <Link href="/seance">
-                <Bouton>Lancer la séance →</Bouton>
+              <Link href="/seance" className="max-sm:w-full">
+                <Bouton pleineLargeur={true} className="sm:w-auto">
+                  Lancer la séance →
+                </Bouton>
               </Link>
             )}
           </div>
@@ -120,9 +120,7 @@ export default function Accueil() {
 
       {/* ---------------------- Barre d'édition widgets --------------------- */}
       <motion.div variants={enfantCascade} className="flex items-center justify-between px-1">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-faint">
-          Tableau de bord
-        </h2>
+        <h2 className="etiquette">Tableau de bord</h2>
         <Bouton
           variante={edition ? "principal" : "fantome"}
           taille="sm"
@@ -213,7 +211,7 @@ export default function Accueil() {
             exit={{ opacity: 0, height: 0 }}
             className="overflow-hidden"
           >
-            <Carte className="p-5">
+            <Carte className="p-4 sm:p-5">
               <h3 className="mb-1 font-semibold">Ajouter un widget</h3>
               <p className="mb-4 text-xs text-muted">
                 Touchez ⤢ sur un widget pour changer son format.
@@ -259,7 +257,7 @@ export default function Accueil() {
 
       {repos && (
         <motion.div variants={enfantCascade}>
-          <Carte className="p-5">
+          <Carte className="p-4 sm:p-5">
             <div className="flex items-start gap-3">
               <span className="text-xl">🌙</span>
               <p className="text-sm leading-relaxed text-muted text-pretty">

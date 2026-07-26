@@ -146,13 +146,13 @@ export default function PageParametres() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 sm:space-y-5">
       {/* ------------------------------ Compte ---------------------------- */}
       <section className="space-y-3">
         <h1 className="px-1 text-sm font-semibold uppercase tracking-wider text-faint">Compte</h1>
 
         {authDisponible && (
-          <Carte className="p-6">
+          <Carte className="p-5 sm:p-6">
             {utilisateur ? (
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
@@ -180,7 +180,7 @@ export default function PageParametres() {
           </Carte>
         )}
 
-        <Carte className="space-y-4 p-6">
+        <Carte className="space-y-4 p-5 sm:p-6">
           <div className="grid gap-4 sm:grid-cols-2">
             <Champ label="Nom d'utilisateur">
               <Saisie value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Votre nom" />
@@ -205,7 +205,7 @@ export default function PageParametres() {
           <Bouton onClick={sauverCompte}>Enregistrer</Bouton>
         </Carte>
 
-        <Carte className="p-6">
+        <Carte className="p-5 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <p className="text-sm font-medium">Mot de passe</p>
@@ -248,7 +248,7 @@ export default function PageParametres() {
           )}
         </Carte>
 
-        <Carte className="p-6">
+        <Carte className="p-5 sm:p-6">
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-medium">Apparence</p>
@@ -283,7 +283,7 @@ export default function PageParametres() {
           </div>
         </Carte>
 
-        <Carte className="p-6">
+        <Carte className="p-5 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <p className="text-sm font-medium">Historique des données</p>
@@ -331,7 +331,7 @@ export default function PageParametres() {
           )}
         </Carte>
 
-        <Carte className="p-6">
+        <Carte className="p-5 sm:p-6">
           <div className="flex flex-wrap gap-3">
             <Bouton variante="fantome" onClick={seDeconnecter}>Se déconnecter</Bouton>
             <Bouton
@@ -366,7 +366,7 @@ export default function PageParametres() {
         <h2 className="px-1 text-sm font-semibold uppercase tracking-wider text-faint">
           On t&apos;emmerde
         </h2>
-        <Carte className="space-y-2.5 p-6">
+        <Carte className="space-y-2.5 p-5 sm:p-6">
           <p className="mb-2 text-sm text-muted text-pretty">
             Choisissez ce dont vous voulez être averti. Tout est désactivable :
             un rappel ignoré est un rappel inutile.
@@ -442,7 +442,7 @@ export default function PageParametres() {
         <h2 className="px-1 text-sm font-semibold uppercase tracking-wider text-faint">
           Gestion du programme
         </h2>
-        <Carte className="p-6">
+        <Carte className="p-5 sm:p-6">
           {programme ? (
             <>
               <div className="flex flex-wrap items-center gap-2">
@@ -479,7 +479,7 @@ export default function PageParametres() {
       </section>
 
       {/* ------------------------------ Version --------------------------- */}
-      <Carte className="p-6">
+      <Carte className="p-5 sm:p-6">
         <h2 className="font-bold">Version de l&apos;application</h2>
         <dl className="mt-3 space-y-1.5 text-sm">
           <div className="flex justify-between">

@@ -14,7 +14,8 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Carte, cx } from "./ui";
+import { Carte, GrandChiffre, cx } from "./ui";
+import { Bouteille } from "./bouteille";
 import { useApp } from "@/lib/useApp";
 import { libelleSeance } from "@/lib/useApp";
 import { ajouterEau, type JournalJour, type TailleWidget, type TypeWidget } from "@/lib/suivi";
@@ -98,7 +99,7 @@ function WidgetLancerSeance({ taille }: { taille: TailleWidget }) {
           {repos ? "🌙" : "🔥"}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[0.7rem] font-semibold uppercase tracking-wider text-faint">
+          <p className="etiquette">
             {repos ? "Aujourd'hui" : "Séance du jour"}
           </p>
           <p className="font-bold leading-tight text-balance">{libelleSeance(seancesDuJour)}</p>
@@ -133,14 +134,12 @@ function WidgetHydratation({ taille }: { taille: TailleWidget }) {
 
   if (taille === "petit") {
     return (
-      <Carte className="flex h-full flex-col items-center justify-center gap-1 p-3">
-        <Anneau pourcentage={scores.hydratation} taille={66} epaisseur={7} couleur="#5aa9d6">
-          <span className="text-base">💧</span>
-        </Anneau>
-        <p className="text-xs font-bold tnum">{litres} L</p>
+      <Carte className="flex h-full flex-col items-center justify-center gap-1.5 p-3">
+        <Bouteille pourcentage={scores.hydratation} hauteur={78} afficherValeur={false} />
+        <p className="chiffre text-base leading-none">{litres} L</p>
         <button
           onClick={() => boire(250)}
-          className="rounded-pill bg-[var(--surface-2)] px-2.5 py-1 text-[0.65rem] font-medium hover:bg-[var(--accent-soft)]"
+          className="rounded-pill bg-[var(--surface-2)] px-2.5 py-1 text-[0.62rem] font-medium transition hover:bg-[var(--accent-soft)]"
         >
           +25 cl
         </button>
@@ -149,30 +148,31 @@ function WidgetHydratation({ taille }: { taille: TailleWidget }) {
   }
 
   return (
-    <Carte className={cx("flex h-full flex-col p-5", taille === "grand" && "justify-between")}>
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-[0.7rem] font-semibold uppercase tracking-wider text-faint">
-            Hydratation
-          </p>
-          <p className="mt-1 text-2xl font-bold tnum">
-            {litres}<span className="text-sm font-normal text-muted"> / {cible} L</span>
-          </p>
+    <Carte className="flex h-full items-center gap-4 p-5">
+      <Bouteille
+        pourcentage={scores.hydratation}
+        hauteur={taille === "grand" ? 118 : 96}
+        afficherValeur={false}
+      />
+      <div className="min-w-0 flex-1">
+        <p className="etiquette">Hydratation</p>
+        <p className="mt-1 chiffre text-3xl leading-none">
+          {litres}
+          <span className="ml-1 text-[0.34em] font-normal uppercase tracking-widest text-muted">
+            / {cible} L
+          </span>
+        </p>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {[250, 500, 750].map((ml) => (
+            <button
+              key={ml}
+              onClick={() => boire(ml)}
+              className="rounded-pill bg-[var(--surface-2)] px-3 py-1.5 text-xs font-medium transition hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]"
+            >
+              +{ml / 10} cl
+            </button>
+          ))}
         </div>
-        <Anneau pourcentage={scores.hydratation} taille={62} epaisseur={7} couleur="#5aa9d6">
-          <span className="text-xs font-bold tnum">{scores.hydratation}%</span>
-        </Anneau>
-      </div>
-      <div className="mt-4 flex gap-2">
-        {[250, 500, 750].map((ml) => (
-          <button
-            key={ml}
-            onClick={() => boire(ml)}
-            className="flex-1 rounded-pill bg-[var(--surface-2)] py-2 text-xs font-medium transition hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]"
-          >
-            +{ml / 10} cl
-          </button>
-        ))}
       </div>
     </Carte>
   );
@@ -198,18 +198,15 @@ function WidgetMacros() {
         transition={{ type: "spring", stiffness: 400, damping: 28 }}
         className="flex h-full flex-col justify-between gap-3 p-5"
       >
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-[0.7rem] font-semibold uppercase tracking-wider text-faint">
-              Score bouffe
-            </p>
-            <p className="mt-1 text-2xl font-bold tnum">
-              {Math.round(totaux.kcal)}
-              <span className="text-sm font-normal text-muted"> / {n.kcal} kcal</span>
-            </p>
-          </div>
-          <Anneau pourcentage={scores.nutrition} taille={62} epaisseur={7}>
-            <span className="text-xs font-bold tnum">{scores.nutrition}%</span>
+        <div className="flex items-start justify-between gap-3">
+          <GrandChiffre
+            label="Score bouffe"
+            valeur={Math.round(totaux.kcal)}
+            unite={`/ ${n.kcal} kcal`}
+            taille="sm"
+          />
+          <Anneau pourcentage={scores.nutrition} taille={58} epaisseur={6}>
+            <span className="chiffre text-xs">{scores.nutrition}%</span>
           </Anneau>
         </div>
 
@@ -247,8 +244,8 @@ function WidgetReussites({ taille }: { taille: TailleWidget }) {
   if (taille === "petit") {
     return (
       <Carte className="flex h-full flex-col items-center justify-center gap-0.5 p-3">
-        <span className="text-3xl">🔥</span>
-        <p className="text-2xl font-bold tnum leading-none">{serie}</p>
+        <span className="text-2xl">🔥</span>
+        <p className="chiffre text-3xl leading-none">{serie}</p>
         <p className="text-center text-[0.65rem] leading-tight text-muted">
           {`séance${serie > 1 ? "s" : ""} d'affilée`}
         </p>
@@ -258,7 +255,7 @@ function WidgetReussites({ taille }: { taille: TailleWidget }) {
 
   return (
     <Carte className="flex h-full flex-col justify-between p-5">
-      <p className="text-[0.7rem] font-semibold uppercase tracking-wider text-faint">Réussites</p>
+      <p className="etiquette">Réussites</p>
       <div className="flex items-center gap-4">
         <span className="text-4xl">🔥</span>
         <div>
@@ -306,12 +303,7 @@ function WidgetPoids({ taille }: { taille: TailleWidget }) {
         className={cx("flex h-full flex-col p-5", taille === "grand" && "justify-between")}
       >
         <div className="flex items-start justify-between">
-          <div>
-            <p className="text-[0.7rem] font-semibold uppercase tracking-wider text-faint">Poids</p>
-            <p className="mt-1 text-2xl font-bold tnum">
-              {dernier}<span className="text-sm font-normal text-muted"> kg</span>
-            </p>
-          </div>
+          <GrandChiffre label="Poids" valeur={dernier} unite="kg" taille="sm" />
           {mesures.length > 1 && (
             <span
               className={cx(
@@ -363,7 +355,7 @@ function WidgetProgression({ taille }: { taille: TailleWidget }) {
         className={cx("flex h-full p-5", taille === "grand" ? "flex-col justify-between" : "items-center gap-5")}
       >
         <div className="min-w-0 flex-1">
-          <p className="text-[0.7rem] font-semibold uppercase tracking-wider text-faint">
+          <p className="etiquette">
             Progression du programme
           </p>
           <p className="mt-1 font-bold">

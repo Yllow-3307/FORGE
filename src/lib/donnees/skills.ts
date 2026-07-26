@@ -423,6 +423,33 @@ export function skillsRecommandes(objectif: string, niveau: string, equipement: 
   return dispo.filter((s) => s.difficulte <= max);
 }
 
+/**
+ * Skills réellement travaillés par un programme.
+ *
+ * On croise les patterns moteur présents dans les séances avec ceux que
+ * chaque skill développe : un programme riche en tirage vertical entraîne
+ * de fait la traction, même si l'utilisateur ne l'a pas déclaré.
+ *
+ * Les figures nettement au-dessus du niveau sont écartées : le programme
+ * n'y prépare que de très loin.
+ */
+export function skillsDuProgramme(
+  patternsTravailles: string[],
+  niveau: string,
+  equipement: string[],
+): Skill[] {
+  const plafond: Record<string, number> = {
+    sedentaire: 2, debutant: 3, intermediaire: 4, avance: 5, athlete: 5,
+  };
+  const max = plafond[niveau] ?? 3;
+  const presents = new Set(patternsTravailles);
+
+  return skillsDisponibles(equipement)
+    .filter((s) => s.difficulte <= max)
+    .filter((s) => s.patterns.some((p) => presents.has(p)))
+    .sort((a, b) => a.difficulte - b.difficulte);
+}
+
 export const FAMILLES: { id: FamilleSkill; nom: string; emoji: string }[] = [
   { id: "tirage", nom: "Tirage", emoji: "🎯" },
   { id: "poussee", nom: "Poussée", emoji: "🧱" },

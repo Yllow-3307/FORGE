@@ -261,7 +261,7 @@ export function structureRepas(
   const ecart = hDiner - hDej;
   if (ecart > 330) {
     repas.push({
-      nom: "Collation après-midi", heure: hDej + Math.floor(ecart / 2), heureTxt: "",
+      nom: "Goûter", heure: hDej + Math.floor(ecart / 2), heureTxt: "",
       duree: 10, lieu: travaille ? "bureau" : "domicile", role: "appoint",
     });
   }

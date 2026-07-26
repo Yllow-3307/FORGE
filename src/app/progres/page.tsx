@@ -8,13 +8,13 @@
  *   « Les skills » : le catalogue complet, avec les paliers de chaque figure.
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bouton, Carte, Pastille, Vide, cx } from "@/components/ui";
 import { useApp } from "@/lib/useApp";
 import {
-  FAMILLES, SKILLS, skillsRecommandes, type Skill,
+  FAMILLES, SKILLS, skillsDuProgramme, type Skill,
 } from "@/lib/donnees/skills";
 import {
   lireSkills, majSkill, progresSkill, reculerEtape, validerEtape,
@@ -171,22 +171,53 @@ export default function PageProgres() {
 
   const onMaj = () => rafraichir();
 
+  /** Patterns moteur réellement présents dans les séances du cycle. */
+  const patternsTravailles = useMemo(() => {
+    if (!programme) return [];
+    const vus = new Set<string>();
+    for (const sem of programme.cycle) {
+      for (const j of sem.jours) {
+        for (const seance of j.seances) {
+          for (const b of seance.blocs) {
+            if (b.role === "principal" || b.role === "accessoire") vus.add(b.pattern);
+          }
+        }
+      }
+    }
+    return [...vus];
+  }, [programme]);
+
+  const duProgramme = useMemo(() => {
+    if (!programme) return [];
+    return skillsDuProgramme(
+      patternsTravailles,
+      programme.profil.niveauSportif,
+      programme.profil.equipement as string[],
+    );
+  }, [programme, patternsTravailles]);
+
+  // Les skills travaillés par le programme rejoignent le suivi sans action
+  // de l'utilisateur : c'est ce qu'il entraîne déjà, autant le lui montrer.
+  useEffect(() => {
+    if (!duProgramme.length) return;
+    const connus = new Set(lireSkills().map((s) => s.skillId));
+    const nouveaux = duProgramme.filter((s) => !connus.has(s.id));
+    if (!nouveaux.length) return;
+    nouveaux.forEach((s) => majSkill(s.id, { actif: true, auto: true }));
+  }, [duProgramme]);
+
   const suivis = useMemo(() => {
     void version;
-    const actifs = lireSkills().filter((s) => s.actif);
-    return actifs
+    return lireSkills()
+      .filter((s) => s.actif)
       .map((a) => SKILLS.find((s) => s.id === a.skillId))
       .filter((s): s is Skill => Boolean(s));
   }, [version]);
 
-  const recommandes = useMemo(() => {
-    if (!programme) return [];
-    return skillsRecommandes(
-      programme.profil.objectif,
-      programme.profil.niveauSportif,
-      programme.profil.equipement as string[],
-    ).filter((s) => !suivis.some((x) => x.id === s.id)).slice(0, 3);
-  }, [programme, suivis]);
+  const recommandes = useMemo(
+    () => duProgramme.filter((s) => !suivis.some((x) => x.id === s.id)).slice(0, 3),
+    [duProgramme, suivis],
+  );
 
   const catalogue = useMemo(
     () => (famille === "toutes" ? SKILLS : SKILLS.filter((s) => s.famille === famille)),
@@ -202,7 +233,7 @@ export default function PageProgres() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 sm:space-y-5">
       {/* ------------------------------- Toi ------------------------------ */}
       <section className="space-y-3">
         <h1 className="px-1 text-sm font-semibold uppercase tracking-wider text-faint">Toi</h1>
@@ -212,13 +243,16 @@ export default function PageProgres() {
             <Vide
               icone="🎯"
               titre="Aucun skill suivi"
-              texte="Choisissez une figure à travailler : vous verrez précisément à quelle étape vous en êtes et ce qui débloque la suivante."
+              texte="Dès qu'un programme est généré, les figures qu'il entraîne apparaissent ici automatiquement."
             />
           </Carte>
         ) : (
           <>
-            <Carte className="p-5">
+            <Carte className="p-4 sm:p-5">
               <p className="text-sm font-medium">Tu travailles ça, toi</p>
+              <p className="mt-0.5 text-xs text-muted text-pretty">
+                Ajoutés automatiquement d&apos;après les mouvements de ton programme.
+              </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {suivis.map((s) => {
                   const p = progresSkill(s.id);
@@ -254,7 +288,7 @@ export default function PageProgres() {
       {recommandes.length > 0 && fiche && (
         <section className="space-y-3">
           <h2 className="px-1 text-sm font-semibold uppercase tracking-wider text-faint">
-            Adaptés à ton niveau et à ton matériel
+            Aussi travaillés par ton programme
           </h2>
           <div className="grid gap-3 sm:grid-cols-3">
             {recommandes.map((s) => (
@@ -321,7 +355,7 @@ export default function PageProgres() {
       </section>
 
       {!fiche && (
-        <Carte className="p-5">
+        <Carte className="p-4 sm:p-5">
           <p className="text-sm text-muted text-pretty">
             Créez votre profil pour obtenir des recommandations adaptées à votre niveau
             et à votre matériel.{" "}

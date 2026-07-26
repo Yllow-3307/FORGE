@@ -14,7 +14,7 @@ import { motion } from "framer-motion";
 import { Bouton, Carte, Champ, Pastille, Saisie, Vide, cx } from "@/components/ui";
 import { useApp } from "@/lib/useApp";
 import {
-  enregistrerFiche, enregistrerPoids, listerPoids, type MesurePoids,
+  enregistrerFiche, enregistrerPoids, listerPoids, supprimerPoids, type MesurePoids,
 } from "@/lib/stockage";
 import { aujourdhui, dateFr, majJour } from "@/lib/suivi";
 
@@ -35,6 +35,7 @@ export default function PageMesures() {
   const [energie, setEnergie] = useState<1 | 2 | 3 | 4 | 5>(3);
   const [enregistrement, setEnregistrement] = useState(false);
   const [message, setMessage] = useState("");
+  const [aSupprimer, setASupprimer] = useState<string | null>(null);
 
   // Chargement de l'historique (système externe : c'est bien le rôle d'un effet).
   useEffect(() => {
@@ -115,6 +116,14 @@ export default function PageMesures() {
     rafraichir();
   };
 
+  const supprimer = async (id: string) => {
+    await supprimerPoids(id);
+    if (fiche) setMesures(await listerPoids(fiche.id));
+    setASupprimer(null);
+    setMessage("Pesée supprimée.");
+    rafraichir();
+  };
+
   if (chargement) {
     return (
       <div className="grid min-h-[60vh] place-items-center">
@@ -136,9 +145,9 @@ export default function PageMesures() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 sm:space-y-5">
       {/* ---------------------------- Nouvelle pesée --------------------- */}
-      <Carte className="p-6">
+      <Carte className="p-5 sm:p-6">
         <h1 className="text-lg font-bold">Pèse-toi</h1>
         <p className="mt-1 text-sm text-muted text-pretty">
           Idéalement le matin à jeun, après passage aux toilettes. Une seule pesée par jour
@@ -202,7 +211,7 @@ export default function PageMesures() {
       </Carte>
 
       {/* ------------------------------ Courbe --------------------------- */}
-      <Carte className="p-6">
+      <Carte className="p-5 sm:p-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-bold">Évolution du poids</h2>
           {stats && mesures.length > 1 && (
@@ -270,7 +279,7 @@ export default function PageMesures() {
 
       {/* ---------------------------- Historique -------------------------- */}
       {mesures.length > 0 && (
-        <Carte className="p-6">
+        <Carte className="p-5 sm:p-6">
           <h2 className="mb-3 font-bold">Historique</h2>
           <ul className="space-y-1.5">
             {[...mesures].reverse().slice(0, 15).map((m, i, arr) => {
@@ -279,23 +288,49 @@ export default function PageMesures() {
               return (
                 <li
                   key={m.id}
-                  className="flex items-center justify-between rounded-2xl bg-[var(--surface-2)] px-4 py-2.5 text-sm"
+                  className="flex items-center justify-between gap-3 rounded-2xl bg-[var(--surface-2)] px-4 py-2.5 text-sm"
                 >
                   <span className="text-muted">{dateFr(m.date)}</span>
-                  <span className="flex items-baseline gap-3">
-                    <span className="font-semibold tnum">{m.poids} kg</span>
-                    {precedent && (
-                      <span
-                        className={cx(
-                          "text-xs tnum",
-                          delta < 0 ? "text-[var(--accent)]"
-                            : delta > 0 ? "text-[var(--warn)]" : "text-faint",
-                        )}
+
+                  {aSupprimer === m.id ? (
+                    <span className="flex items-center gap-2">
+                      <span className="text-xs text-muted">Supprimer ?</span>
+                      <button
+                        onClick={() => supprimer(m.id)}
+                        className="rounded-pill bg-[var(--danger)] px-3 py-1 text-xs font-medium text-white"
                       >
-                        {delta > 0 ? "+" : ""}{delta}
-                      </span>
-                    )}
-                  </span>
+                        Oui
+                      </button>
+                      <button
+                        onClick={() => setASupprimer(null)}
+                        className="rounded-pill bg-[var(--surface)] px-3 py-1 text-xs"
+                      >
+                        Non
+                      </button>
+                    </span>
+                  ) : (
+                    <span className="flex items-baseline gap-3">
+                      <span className="chiffre text-base">{m.poids} kg</span>
+                      {precedent && (
+                        <span
+                          className={cx(
+                            "text-xs tnum",
+                            delta < 0 ? "text-[var(--accent)]"
+                              : delta > 0 ? "text-[var(--warn)]" : "text-faint",
+                          )}
+                        >
+                          {delta > 0 ? "+" : ""}{delta}
+                        </span>
+                      )}
+                      <button
+                        onClick={() => setASupprimer(m.id)}
+                        aria-label={`Supprimer la pesée du ${dateFr(m.date)}`}
+                        className="text-muted transition hover:text-[var(--danger)]"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
                 </li>
               );
             })}
