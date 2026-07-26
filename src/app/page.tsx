@@ -70,14 +70,168 @@ export default function Accueil() {
 
   if (!fiche) {
     return (
-      <Carte>
-        <Vide
-          icone="⚒️"
-          titre="Bienvenue"
-          texte="Créez votre profil : 18 paramètres suffisent à bâtir un programme complet, calé sur vos vrais horaires et votre matériel."
-          action={<Link href="/profil"><Bouton>Créer mon programme</Bouton></Link>}
-        />
-      </Carte>
+      <motion.div
+        variants={cascade}
+        initial="initial"
+        animate="animate"
+        className="space-y-4 sm:space-y-5"
+      >
+        <motion.section variants={enfantCascade}>
+          <Carte fort className="carte-editoriale relative overflow-hidden p-6 sm:p-9">
+            {/* Halo corail diffusé dans l'angle : donne la profondeur du verre. */}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute -right-24 -top-28 h-64 w-64 rounded-full
+                         bg-[radial-gradient(circle,var(--accent-soft-fort),transparent_70%)] blur-2xl"
+            />
+
+            <div className="relative space-y-6">
+              <div className="text-center">
+                <span className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-[var(--accent-soft)] text-3xl shadow-soft">
+                  ⚒️
+                </span>
+                <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">
+                  Bienvenue
+                </h1>
+                <p className="mt-3 text-base leading-relaxed text-muted text-pretty">
+                  18 paramètres suffisent à bâtir un programme complet, calé sur vos vrais
+                  horaires et votre matériel. Voici un aperçu de ce qui vous attend.
+                </p>
+              </div>
+
+              {/* Aperçu visuel des widgets simulés */}
+              <div className="mx-auto max-w-3xl">
+                <div
+                  className="grid gap-3 sm:grid-cols-5"
+                  aria-hidden
+                  aria-label="Aperçu du tableau de bord"
+                >
+                  <motion.div
+                    animate={{ y: [0, -6, 0] }}
+                    transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 1.2 }}
+                    className="glass glass-sheen col-span-2 self-end rounded-xl2 px-4 py-3"
+                  >
+                    <p className="text-[0.68rem] font-semibold uppercase tracking-wider text-faint">
+                      Zone 2
+                    </p>
+                    <p className="mt-0.5 text-sm font-bold tnum">132–143 bpm</p>
+                    <p className="mt-0.5 text-[0.68rem] text-muted">endurance fondamentale</p>
+                  </motion.div>
+
+                  <motion.div
+                    animate={{ y: [0, -6, 0] }}
+                    transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 0 }}
+                    className="glass-strong glass-sheen col-span-3 rounded-xl2 p-4"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[0.68rem] font-semibold uppercase tracking-wider text-faint">
+                        Mardi
+                      </span>
+                      <span className="rounded-pill bg-[var(--accent-soft)] px-2 py-0.5 text-[0.66rem] font-medium text-[var(--accent)]">
+                        50 min
+                      </span>
+                    </div>
+                    <p className="mt-2 font-semibold">Full body A</p>
+                    <div className="mt-3 space-y-1.5">
+                      {[
+                        ["Traction pronation", "4 × 8"],
+                        ["Pompes déclinées", "4 × 10"],
+                        ["Squat gobelet", "3 × 12"],
+                      ].map(([nom, serie]) => (
+                        <div key={nom} className="flex items-center justify-between text-[0.78rem]">
+                          <span className="text-muted">{nom}</span>
+                          <span className="tnum font-medium">{serie}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-3 h-1.5 overflow-hidden rounded-pill bg-[var(--surface-2)]">
+                      <div
+                        className="h-full w-[68%] rounded-pill bg-[var(--accent)]"
+                      />
+                    </div>
+                  </motion.div>
+
+                  <motion.div
+                    animate={{ y: [0, -6, 0] }}
+                    transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 0.6 }}
+                    className="glass glass-sheen col-span-3 mt-3 rounded-xl2 p-4"
+                  >
+                    <span className="text-[0.68rem] font-semibold uppercase tracking-wider text-faint">
+                      Aujourd&apos;hui
+                    </span>
+                    <p className="chiffre mt-1 valeur-sm leading-none">
+                      2 020<span className="unite ml-1.5 text-[0.5rem]">kcal</span>
+                    </p>
+                    <div className="mt-3 flex h-2 overflow-hidden rounded-pill">
+                      <div className="w-[32%] bg-[var(--data-proteines)]" />
+                      <div className="w-[42%] bg-[var(--data-glucides)]" />
+                      <div className="w-[26%] bg-[var(--data-lipides)]" />
+                    </div>
+                    <div className="mt-2 flex justify-between text-[0.68rem] text-muted">
+                      <span>P 164 g</span>
+                      <span>G 213 g</span>
+                      <span>L 57 g</span>
+                    </div>
+                  </motion.div>
+
+                  <motion.div
+                    animate={{ y: [0, -6, 0] }}
+                    transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 1.8 }}
+                    className="glass-strong col-span-2 mt-3 flex items-center gap-3 self-start rounded-xl2 px-4 py-3"
+                  >
+                    <span className="text-xl">💧</span>
+                    <div>
+                      <p className="text-sm font-bold tnum leading-none">2,6 L</p>
+                      <p className="mt-0.5 text-[0.68rem] leading-tight text-muted">
+                        réparties sur 9 points
+                      </p>
+                    </div>
+                  </motion.div>
+                </div>
+              </div>
+
+              {/* Arguments de valeur */}
+              <div className="mx-auto max-w-3xl">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4 transition hover:border-[var(--border-strong)] hover:shadow-soft">
+                    <span className="text-2xl">🎯</span>
+                    <h3 className="mt-2 text-sm font-bold text-ink">Objectif précis</h3>
+                    <p className="mt-1 text-xs leading-relaxed text-muted">
+                      Perte de gras, prise de muscle, force, endurance ou recomposition : le programme s&apos;adapte à votre objectif.
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4 transition hover:border-[var(--border-strong)] hover:shadow-soft">
+                    <span className="text-2xl">⏱️</span>
+                    <h3 className="mt-2 text-sm font-bold text-ink">Horaires réels</h3>
+                    <p className="mt-1 text-xs leading-relaxed text-muted">
+                      Séances calées sur vos heures de réveil, travail et disponibilités. Le moteur trouve les créneaux qui tiennent.
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4 transition hover:border-[var(--border-strong)] hover:shadow-soft">
+                    <span className="text-2xl">🧩</span>
+                    <h3 className="mt-2 text-sm font-bold text-ink">Tableau de bord vivant</h3>
+                    <p className="mt-1 text-xs leading-relaxed text-muted">
+                      Six types de widgets, trois formats. Ajoutez, retirez ou réorganisez à tout moment selon vos priorités.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* CTA */}
+              <div className="text-center">
+                <Link href="/profil">
+                  <Bouton taille="lg" className="shadow-soft hover:shadow-lift">
+                    Créer mon programme
+                  </Bouton>
+                </Link>
+                <p className="mt-3 text-xs text-muted">
+                  Gratuit. 5 étapes. Résultat immédiat.
+                </p>
+              </div>
+            </div>
+          </Carte>
+        </motion.section>
+      </motion.div>
     );
   }
 
