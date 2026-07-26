@@ -1,4 +1,4 @@
-# FORGE — application web
+# FORGE
 
 Générateur de programmes personnalisés : **callisthénie/musculation, endurance,
 nutrition et hydratation**, calculés à partir de 18 paramètres (profil, agenda
@@ -8,6 +8,10 @@ Interface inspirée du moodboard : verre dépoli, palette sauge, coins arrondis,
 thèmes clair et sombre.
 
 ---
+
+> **Pour tester tout de suite :** `cd webapp && npm install && npm run dev`
+> Mise en ligne et comptes : voir **[DEPLOIEMENT.md](DEPLOIEMENT.md)**.
+> Ce qu'il reste à faire : voir **[FEUILLE-DE-ROUTE.md](FEUILLE-DE-ROUTE.md)**.
 
 ## Démarrage
 
