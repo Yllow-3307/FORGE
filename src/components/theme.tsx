@@ -84,13 +84,16 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
       onClick={toggle}
       aria-label={sombre ? "Passer au thème clair" : "Passer au thème sombre"}
       title={sombre ? "Thème clair" : "Thème sombre"}
-      className={`glass relative h-9 w-16 rounded-pill p-1 transition-colors ${className}`}
+      className={
+        "glass relative h-10 w-[4.25rem] rounded-pill p-1 "
+        + `transition-colors hover:border-[var(--border-strong)] ${className}`
+      }
     >
       <motion.span
         layout
-        transition={{ type: "spring", stiffness: 500, damping: 34 }}
-        className="grid h-7 w-7 place-items-center rounded-full bg-[var(--accent)] text-sm"
-        style={{ marginLeft: sombre ? "1.75rem" : 0 }}
+        transition={{ type: "spring", stiffness: 460, damping: 34 }}
+        className="grid h-8 w-8 place-items-center rounded-full bg-[image:var(--accent-degrade)] text-sm shadow-soft"
+        style={{ marginLeft: sombre ? "2.05rem" : 0 }}
       >
         <span aria-hidden>{sombre ? "🌙" : "☀️"}</span>
       </motion.span>

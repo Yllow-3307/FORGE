@@ -38,9 +38,11 @@ export function Bouteille({
                      c-8 0-14-6-14-14 V68 c0-7 3-14 8-19 l6-6 c4-4 7-7 7-13 V8 Z" />
           </clipPath>
 
+          {/* Contrepoint froid : l'eau prend le cyan doux, le corail reste
+              réservé aux actions et à l'effort. */}
           <linearGradient id="degrade-eau" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.55" />
-            <stop offset="100%" stopColor="var(--accent)" stopOpacity="0.85" />
+            <stop offset="0%" stopColor="var(--eau-clair)" stopOpacity="0.72" />
+            <stop offset="100%" stopColor="var(--eau)" stopOpacity="0.88" />
           </linearGradient>
         </defs>
 
@@ -73,21 +75,22 @@ export function Bouteille({
           d="M35 8 h30 v22 c0 6 3 9 7 13 l6 6 c5 5 8 12 8 19 v106 c0 8-6 14-14 14 H28
              c-8 0-14-6-14-14 V68 c0-7 3-14 8-19 l6-6 c4-4 7-7 7-13 V8 Z"
           stroke="var(--border-strong)"
-          strokeWidth="2.5"
+          strokeWidth="1.75"
         />
 
         {/* Bouchon */}
         <rect
-          x="33" y="0" width="34" height="10" rx="3"
-          fill="var(--accent)" opacity="0.55"
+          x="33" y="0" width="34" height="10" rx="4"
+          fill="var(--eau)" opacity="0.45"
         />
 
         {/* Graduations discrètes */}
         {[0.25, 0.5, 0.75].map((f) => (
           <line
             key={f}
-            x1="66" y1={178 - f * 150} x2="80" y2={178 - f * 150}
-            stroke="var(--border-strong)" strokeWidth="1.5" opacity="0.5"
+            x1="68" y1={178 - f * 150} x2="80" y2={178 - f * 150}
+            stroke="var(--border-strong)" strokeWidth="1.25" opacity="0.5"
+            strokeLinecap="round"
           />
         ))}
       </svg>

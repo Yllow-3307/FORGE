@@ -104,40 +104,56 @@ export function formatChrono(secondes: number): string {
 }
 
 export function CercleMinuteur({
-  restant, total, taille = 260, couleur = "var(--accent)", libelle,
+  restant, total, taille = 260, couleur = "var(--accent-vif)", libelle,
 }: {
   restant: number; total: number; taille?: number; couleur?: string; libelle?: string;
 }) {
-  const epaisseur = 12;
-  const r = (taille - epaisseur) / 2;
+  // Trait fin : l'arc se lit comme un tracé, pas comme un bandeau.
+  const epaisseur = 6;
+  const r = (taille - epaisseur * 2) / 2;
   const circonference = 2 * Math.PI * r;
   const progression = total > 0 ? restant / total : 0;
 
+  // Position du curseur en bout d'arc, sur le cercle non pivoté.
+  const angle = progression * 2 * Math.PI - Math.PI / 2;
+  const cx = taille / 2 + r * Math.cos(angle);
+  const cy = taille / 2 + r * Math.sin(angle);
+
   return (
     <div className="relative grid place-items-center" style={{ width: taille, height: taille }}>
-      <svg width={taille} height={taille} className="-rotate-90">
-        <circle
-          cx={taille / 2} cy={taille / 2} r={r} fill="none"
-          stroke="var(--surface-2)" strokeWidth={epaisseur}
-        />
-        <circle
-          cx={taille / 2} cy={taille / 2} r={r} fill="none"
-          stroke={couleur} strokeWidth={epaisseur} strokeLinecap="round"
-          strokeDasharray={circonference}
-          strokeDashoffset={circonference * (1 - progression)}
-          style={{ transition: "stroke-dashoffset 0.3s linear" }}
-        />
+      <svg width={taille} height={taille} className="overflow-visible">
+        <g style={{ transform: "rotate(-90deg)", transformOrigin: "center" }}>
+          <circle
+            cx={taille / 2} cy={taille / 2} r={r} fill="none"
+            stroke="var(--surface-2)" strokeWidth={epaisseur}
+          />
+          <circle
+            cx={taille / 2} cy={taille / 2} r={r} fill="none"
+            stroke={couleur} strokeWidth={epaisseur} strokeLinecap="round"
+            strokeDasharray={circonference}
+            strokeDashoffset={circonference * (1 - progression)}
+            style={{ transition: "stroke-dashoffset 0.3s linear" }}
+          />
+        </g>
+        {progression > 0 && (
+          <circle
+            cx={cx} cy={cy} r={epaisseur * 0.7}
+            fill="var(--marqueur)"
+            stroke="var(--marqueur-halo)" strokeWidth={epaisseur}
+            style={{ transition: "cx 0.3s linear, cy 0.3s linear" }}
+          />
+        )}
       </svg>
       <div className="absolute text-center">
         <motion.p
           key={restant}
-          initial={{ scale: restant <= 3 && restant > 0 ? 1.15 : 1 }}
+          initial={{ scale: restant <= 3 && restant > 0 ? 1.06 : 1 }}
           animate={{ scale: 1 }}
-          className="text-5xl font-bold tnum tabular-nums"
+          className="chiffre valeur-lg leading-none"
         >
           {formatChrono(restant)}
         </motion.p>
-        {libelle && <p className="mt-1 text-sm text-muted">{libelle}</p>}
+        {libelle && <p className="mt-2.5 etiquette">{libelle}</p>}
       </div>
     </div>
   );

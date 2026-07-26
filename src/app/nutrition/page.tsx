@@ -78,7 +78,10 @@ export default function PageNutrition() {
   if (chargement) {
     return (
       <div className="grid min-h-[60vh] place-items-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--accent)]" />
+        <div
+          role="status" aria-label="Chargement en cours"
+          className="h-9 w-9 animate-spin rounded-full border-2 border-[var(--border-strong)] border-t-[var(--accent)]"
+        />
       </div>
     );
   }
@@ -117,17 +120,15 @@ export default function PageNutrition() {
     <div className="space-y-4 sm:space-y-5">
       {/* ---------------------------- Scores ---------------------------- */}
       <section className="grid gap-3 sm:grid-cols-2">
-        <Carte className="flex items-center gap-4 p-5 sm:gap-5 sm:p-6">
+        <Carte fort className="carte-editoriale flex items-center gap-4 p-5 sm:gap-5 sm:p-7">
           <Anneau pourcentage={scores.nutrition} taille={92}>
-            <span className="text-lg font-bold tnum">{scores.nutrition}%</span>
+            <span className="chiffre text-lg leading-none">{scores.nutrition}%</span>
           </Anneau>
           <div className="min-w-0">
             <p className="etiquette">Ton score bouffe</p>
-            <p className="mt-1 chiffre text-3xl leading-none">
+            <p className="mt-1.5 chiffre valeur-sm leading-none">
               {Math.round(totaux.kcal)}
-              <span className="ml-1 text-[0.34em] font-normal uppercase tracking-widest text-muted">
-                / {n.kcal} kcal
-              </span>
+              <span className="unite ml-1.5 text-[0.3em]">/ {n.kcal} kcal</span>
             </p>
             <p className="mt-1 text-xs text-muted text-pretty">
               {scores.nutrition >= 95
@@ -139,23 +140,24 @@ export default function PageNutrition() {
           </div>
         </Carte>
 
-        <Carte className="flex items-center gap-4 p-5 sm:gap-5 sm:p-6">
+        <Carte fort className="carte-editoriale flex items-center gap-4 p-5 sm:gap-5 sm:p-7">
           <Bouteille pourcentage={scores.hydratation} hauteur={124} afficherValeur={false} />
           <div className="min-w-0 flex-1">
             <p className="etiquette">Ton score hydra</p>
-            <p className="mt-1 chiffre text-3xl leading-none">
+            <p className="mt-1.5 chiffre valeur-sm leading-none">
               {(jour.hydratationMl / 1000).toFixed(1)}
-              <span className="ml-1 text-[0.34em] font-normal uppercase tracking-widest text-muted">
+              <span className="unite ml-1.5 text-[0.3em]">
                 / {(cibleHydratation / 1000).toFixed(1)} L
               </span>
             </p>
-            <p className="mt-1 text-xs text-muted">{scores.hydratation} % de la cible</p>
-            <div className="mt-2 flex gap-1.5">
+            <p className="mt-1.5 text-xs text-muted">{scores.hydratation} % de la cible</p>
+            <div className="mt-3 flex flex-wrap gap-1.5">
               {[250, 500].map((ml) => (
                 <button
                   key={ml}
                   onClick={() => { ajouterEau(aujourdhui(), ml); rafraichir(); }}
-                  className="rounded-pill bg-[var(--surface-2)] px-3 py-1 text-xs font-medium transition hover:bg-[var(--accent-soft)]"
+                  className="min-h-9 rounded-pill bg-[var(--eau-soft)] px-3.5 py-1.5 text-xs font-medium
+                             transition-colors duration-200 hover:bg-[var(--accent-soft)]"
                 >
                   +{ml / 10} cl
                 </button>
@@ -163,7 +165,9 @@ export default function PageNutrition() {
               {jour.hydratationMl > 0 && (
                 <button
                   onClick={() => { ajouterEau(aujourdhui(), -250); rafraichir(); }}
-                  className="rounded-pill bg-[var(--surface-2)] px-3 py-1 text-xs text-muted"
+                  aria-label="Retirer 25 cl"
+                  className="min-h-9 rounded-pill bg-[var(--surface-2)] px-3.5 py-1.5 text-xs text-muted
+                             transition-colors duration-200 hover:bg-[var(--surface)] hover:text-ink"
                 >
                   −
                 </button>
@@ -175,21 +179,21 @@ export default function PageNutrition() {
 
       {/* ---------------------------- Macros ---------------------------- */}
       <Carte className="p-5 sm:p-6">
-        <h2 className="mb-4 font-bold">Macros du jour</h2>
+        <h2 className="mb-5 text-lg font-medium">Macros du jour</h2>
         <div className="grid gap-4 sm:grid-cols-3">
           {[
-            { nom: "Protéines", val: totaux.proteines, cible: n.proteinesG, couleur: "var(--accent)" },
-            { nom: "Glucides", val: totaux.glucides, cible: n.glucidesG, couleur: "#7fb3c8" },
-            { nom: "Lipides", val: totaux.lipides, cible: n.lipidesG, couleur: "var(--color-peach)" },
+            { nom: "Protéines", val: totaux.proteines, cible: n.proteinesG, couleur: "var(--data-proteines)" },
+            { nom: "Glucides", val: totaux.glucides, cible: n.glucidesG, couleur: "var(--data-glucides)" },
+            { nom: "Lipides", val: totaux.lipides, cible: n.lipidesG, couleur: "var(--data-lipides)" },
           ].map((m) => (
             <div key={m.nom}>
-              <div className="mb-1.5 flex items-baseline justify-between">
+              <div className="mb-2 flex items-baseline justify-between gap-2">
                 <span className="text-sm font-medium">{m.nom}</span>
                 <span className="text-xs tnum text-muted">
-                  {Math.round(m.val)} / {m.cible} g
+                  {Math.round(m.val)} <span className="text-faint">/ {m.cible} g</span>
                 </span>
               </div>
-              <div className="h-2 overflow-hidden rounded-pill bg-[var(--surface-2)]">
+              <div className="h-1.5 overflow-hidden rounded-pill bg-[var(--surface-2)]">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${Math.min(100, (m.val / m.cible) * 100)}%` }}
@@ -205,9 +209,7 @@ export default function PageNutrition() {
 
       {/* ------------------------- Journal repas ------------------------- */}
       <section className="space-y-3">
-        <h2 className="px-1 text-sm font-semibold uppercase tracking-wider text-faint">
-          T&apos;as mangé quoi ?
-        </h2>
+        <h2 className="etiquette px-1">T&apos;as mangé quoi ?</h2>
 
         {REPAS.map((r) => {
           const entrees = jour.repas.filter((e) => e.repas === r.id);
@@ -236,7 +238,7 @@ export default function PageNutrition() {
                     return (
                       <li
                         key={e.id}
-                        className="flex items-center justify-between gap-3 rounded-2xl bg-[var(--surface-2)] px-3.5 py-2 text-sm"
+                        className="flex items-center justify-between gap-3 rounded-2xl bg-[var(--surface-2)] px-3.5 py-2.5 text-sm"
                       >
                         <span className="min-w-0 flex-1 truncate">
                           {a?.nom ?? e.nomLibre}
@@ -274,8 +276,8 @@ export default function PageNutrition() {
                         <button
                           onClick={() => setModeManuel(false)}
                           className={cx(
-                            "rounded-pill px-3 py-1.5 text-xs font-medium",
-                            !modeManuel ? "bg-[var(--accent)] text-[var(--accent-contrast)]"
+                            "min-h-9 rounded-pill px-3.5 py-2 text-xs font-medium transition-colors duration-200",
+                            !modeManuel ? "bg-[image:var(--accent-degrade)] text-[var(--accent-contrast)] shadow-soft"
                               : "bg-[var(--surface-2)] text-muted",
                           )}
                         >
@@ -284,8 +286,8 @@ export default function PageNutrition() {
                         <button
                           onClick={() => setModeManuel(true)}
                           className={cx(
-                            "rounded-pill px-3 py-1.5 text-xs font-medium",
-                            modeManuel ? "bg-[var(--accent)] text-[var(--accent-contrast)]"
+                            "min-h-9 rounded-pill px-3.5 py-2 text-xs font-medium transition-colors duration-200",
+                            modeManuel ? "bg-[image:var(--accent-degrade)] text-[var(--accent-contrast)] shadow-soft"
                               : "bg-[var(--surface-2)] text-muted",
                           )}
                         >
@@ -340,7 +342,7 @@ export default function PageNutrition() {
                             <span className="text-sm text-muted">g</span>
                             <button
                               onClick={() => setGrammes(selection.portion)}
-                              className="rounded-pill bg-[var(--surface-2)] px-3 py-1.5 text-xs"
+                              className="min-h-9 rounded-pill bg-[var(--surface-2)] px-3.5 py-2 text-xs transition-colors duration-200 hover:bg-[var(--surface)]"
                             >
                               {selection.portionNom} ({selection.portion} g)
                             </button>
@@ -364,7 +366,7 @@ export default function PageNutrition() {
                             <button
                               onClick={() => setCategorie("toutes")}
                               className={cx(
-                                "rounded-pill px-2.5 py-1 text-[0.7rem]",
+                                "min-h-8 rounded-pill px-3 py-1.5 text-[0.7rem] transition-colors duration-200",
                                 categorie === "toutes"
                                   ? "bg-[var(--accent)] text-[var(--accent-contrast)]"
                                   : "bg-[var(--surface-2)] text-muted",
@@ -377,7 +379,7 @@ export default function PageNutrition() {
                                 key={c.id}
                                 onClick={() => setCategorie(c.id)}
                                 className={cx(
-                                  "rounded-pill px-2.5 py-1 text-[0.7rem]",
+                                  "min-h-8 rounded-pill px-3 py-1.5 text-[0.7rem] transition-colors duration-200",
                                   categorie === c.id
                                     ? "bg-[var(--accent)] text-[var(--accent-contrast)]"
                                     : "bg-[var(--surface-2)] text-muted",
@@ -392,7 +394,7 @@ export default function PageNutrition() {
                               <button
                                 key={a.id}
                                 onClick={() => { setSelection(a); setGrammes(a.portion); }}
-                                className="flex w-full items-center justify-between gap-3 rounded-2xl bg-[var(--surface-2)] px-3.5 py-2 text-left text-sm transition hover:bg-[var(--accent-soft)]"
+                                className="flex min-h-11 w-full items-center justify-between gap-3 rounded-2xl bg-[var(--surface-2)] px-3.5 py-2.5 text-left text-sm transition-colors duration-200 hover:bg-[var(--accent-soft)]"
                               >
                                 <span className="min-w-0 flex-1 truncate">{a.nom}</span>
                                 <span className="shrink-0 text-xs tnum text-muted">
@@ -420,7 +422,7 @@ export default function PageNutrition() {
       {/* -------------------------- Suggestions -------------------------- */}
       {scores.nutrition < 95 && suggestions.length > 0 && (
         <Carte className="p-5 sm:p-6">
-          <h2 className="font-bold">Mange encore</h2>
+          <h2 className="text-lg font-medium">Mange encore</h2>
           <p className="mt-1 text-sm text-muted">
             Pour atteindre tes cibles du jour, voici ce qui manque le plus.
           </p>
@@ -428,7 +430,7 @@ export default function PageNutrition() {
             {suggestions.map((s, i) => (
               <li
                 key={i}
-                className="flex flex-wrap items-baseline justify-between gap-2 rounded-2xl bg-[var(--surface-2)] px-4 py-3"
+                className="panneau-chaud flex flex-wrap items-baseline justify-between gap-2 rounded-2xl px-4 py-3.5"
               >
                 <span className="min-w-0">
                   <span className="font-medium">

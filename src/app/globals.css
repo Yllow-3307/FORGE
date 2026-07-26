@@ -2,31 +2,39 @@
 
 /* ==========================================================================
    FORGE — design tokens
-   Direction visuelle : dégradé aquarelle gris-bleu vers corail, verre dépoli
-   très flou, coins « squircle », chiffres en graisse fine, lueur diffuse.
+   Direction visuelle : base minérale gris-bleu très claire, halos corail /
+   pêche / cyan diffusés derrière l'interface, verre dépoli lumineux, coins
+   « squircle », grands chiffres en graisse fine, marqueurs jaune pâle.
    ========================================================================== */
 
 @theme {
-  /* --- Palette froide --- */
-  --color-brume: #c7ccd3;
+  /* --- Base minérale (froide) --- */
+  --color-mineral: #e8e6e5;
+  --color-brume: #dde3e8;
   --color-ardoise: #9aa3ad;
-  --color-encre: #2e3338;
-  --color-nuit: #1a1e23;
+  --color-encre: #182126;
+  --color-nuit: #12181c;
 
-  /* --- Palette chaude --- */
-  --color-corail: #e8a48a;
-  --color-peche: #f2c3ab;
-  --color-terracotta: #d98e72;
-  --color-sable: #efe4dc;
+  /* --- Chaleur : corail, pêche, rose --- */
+  --color-corail: #e98e79;
+  --color-peche: #f1a08d;
+  --color-rose-chaud: #d77769;
+  --color-terracotta: #b85b45;
+  --color-sable: #f4ebe6;
 
-  /* --- Rayons : très arrondis, façon squircle --- */
-  --radius-xl2: 2rem;
-  --radius-xl3: 2.75rem;
+  /* --- Contrepoint froid et accent d'attention --- */
+  --color-cyan-doux: #86d7e0;
+  --color-jaune-pale: #f5e779;
+  --color-lin: #f8f8f6;
+
+  /* --- Rayons : squircle, de la pastille à la grande carte --- */
+  --radius-xl2: 1.75rem;   /* 28px — carte courante */
+  --radius-xl3: 2.75rem;   /* 44px — grande carte éditoriale */
   --radius-pill: 999px;
 
   /* --- Ombres : diffuses, jamais dures --- */
-  --shadow-soft: 0 4px 24px rgb(46 51 56 / 0.06);
-  --shadow-lift: 0 12px 48px rgb(46 51 56 / 0.10);
+  --shadow-soft: 0 1px 2px rgb(24 33 38 / 0.03), 0 8px 24px rgb(24 33 38 / 0.05);
+  --shadow-lift: 0 2px 6px rgb(24 33 38 / 0.04), 0 18px 48px rgb(24 33 38 / 0.10);
 
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
@@ -39,79 +47,156 @@
 :root {
   color-scheme: light;
 
-  --bg-base: #d5d8dd;
-  --lavis-froid: #b9c0c9;
-  --lavis-neutre: #cfd3d8;
-  --lavis-chaud: #e9a78d;
-  --lavis-peche: #f3c9b3;
+  /* --- Fond : base minérale + halos diffus --- */
+  --bg-base: #e4e6e8;
+  --halo-froid: rgb(221 227 232 / 0.95);
+  --halo-cyan: rgb(134 215 224 / 0.34);
+  --halo-peche: rgb(241 160 141 / 0.40);
+  --halo-corail: rgb(233 142 121 / 0.52);
+  --grain-opacite: 0.30;
 
-  /* Verre dépoli : très flou, bordure blanche lumineuse, sans ombre portée dure */
-  --glass-bg: rgb(255 255 255 / 0.30);
-  --glass-bg-strong: rgb(255 255 255 / 0.46);
-  --glass-border: rgb(255 255 255 / 0.55);
-  --glass-shadow: 0 8px 40px rgb(46 51 56 / 0.10);
-  --glass-blur: 32px;
+  /* --- Verre dépoli : blanc translucide, bordure lumineuse --- */
+  --glass-bg: rgb(255 255 255 / 0.34);
+  --glass-bg-strong: rgb(255 255 255 / 0.52);
+  --glass-border: rgb(255 255 255 / 0.62);
+  --glass-shadow:
+    0 1px 2px rgb(24 33 38 / 0.03),
+    0 10px 34px rgb(24 33 38 / 0.08);
+  --glass-blur: 28px;
+  --glass-sature: 155%;
 
-  --surface: rgb(255 255 255 / 0.55);
-  --surface-2: rgb(255 255 255 / 0.32);
-  --surface-3: rgb(255 255 255 / 0.20);
+  --surface: rgb(255 255 255 / 0.58);
+  --surface-2: rgb(255 255 255 / 0.36);
+  --surface-3: rgb(255 255 255 / 0.22);
 
-  --text: #2e3338;
-  --text-muted: #5d6670;
-  --text-faint: #8b939c;
+  /* --- Panneaux secondaires chauds (corail / pêche) --- */
+  --panneau-chaud: linear-gradient(
+    140deg,
+    rgb(241 160 141 / 0.26) 0%,
+    rgb(233 142 121 / 0.16) 100%
+  );
+  --panneau-chaud-bord: rgb(233 142 121 / 0.30);
+  --panneau-froid: linear-gradient(
+    140deg,
+    rgb(134 215 224 / 0.24) 0%,
+    rgb(221 227 232 / 0.18) 100%
+  );
 
-  --border: rgb(255 255 255 / 0.42);
-  --border-strong: rgb(255 255 255 / 0.68);
+  --text: #182126;
+  --text-muted: #4d5860;
+  --text-faint: #7c8791;
 
-  --accent: #c9755a;
-  --accent-soft: rgb(232 164 138 / 0.28);
+  --border: rgb(255 255 255 / 0.48);
+  --border-strong: rgb(255 255 255 / 0.75);
+  --filet: rgb(24 33 38 / 0.08);
+
+  /* Accent interactif : corail assombri, lisible en blanc dessus (AA). */
+  --accent: #b85b45;
+  --accent-vif: #d77769;
+  --accent-clair: #e98e79;
+  --accent-degrade: linear-gradient(135deg, #c1614a 0%, #a34a37 100%);
+  --accent-soft: rgb(233 142 121 / 0.24);
+  --accent-soft-fort: rgb(233 142 121 / 0.38);
   --accent-contrast: #ffffff;
+  --anneau-focus: rgb(184 91 69 / 0.24);
 
-  --warn: #b8791f;
-  --warn-soft: rgb(242 195 171 / 0.42);
+  /* Contrepoint froid : équilibre les tons chauds, jamais porteur de sens. */
+  --eau: #4d9fb0;
+  --eau-clair: #86d7e0;
+  --eau-soft: rgb(134 215 224 / 0.26);
+
+  /* Jaune pâle : réservé aux marqueurs de valeur active. */
+  --marqueur: #f5e779;
+  --marqueur-halo: rgb(245 231 121 / 0.55);
+
+  --warn: #8a5e12;
+  --warn-soft: rgb(241 190 120 / 0.30);
   --danger: #a83c4a;
   --danger-soft: rgb(168 60 74 / 0.12);
 
+  /* Données : trois teintes distinctes, harmonisées à la palette. */
+  --data-proteines: #c1614a;
+  --data-glucides: #5c9fb2;
+  --data-lipides: #e2a184;
+
   /* Lueur portée sur les grands chiffres, signature du style */
-  --lueur: 0 0 18px rgb(255 255 255 / 0.55);
+  --lueur: 0 0 20px rgb(255 255 255 / 0.60);
+
+  /* Durées : une seule échelle pour toute l'interface */
+  --t-rapide: 160ms;
+  --t-douce: 260ms;
+  --t-lente: 520ms;
 }
 
 .dark {
   color-scheme: dark;
 
-  --bg-base: #1e2328;
-  --lavis-froid: #2b333c;
-  --lavis-neutre: #242a30;
-  --lavis-chaud: #6b4436;
-  --lavis-peche: #7d5342;
+  --bg-base: #171d21;
+  --halo-froid: rgb(37 47 55 / 0.9);
+  --halo-cyan: rgb(77 159 176 / 0.20);
+  --halo-peche: rgb(215 119 105 / 0.18);
+  --halo-corail: rgb(184 91 69 / 0.26);
+  --grain-opacite: 0.18;
 
-  --glass-bg: rgb(255 255 255 / 0.07);
-  --glass-bg-strong: rgb(255 255 255 / 0.12);
-  --glass-border: rgb(255 255 255 / 0.14);
-  --glass-shadow: 0 8px 40px rgb(0 0 0 / 0.35);
-  --glass-blur: 32px;
+  --glass-bg: rgb(255 255 255 / 0.06);
+  --glass-bg-strong: rgb(255 255 255 / 0.11);
+  --glass-border: rgb(255 255 255 / 0.13);
+  --glass-shadow:
+    0 1px 2px rgb(0 0 0 / 0.20),
+    0 12px 40px rgb(0 0 0 / 0.34);
+  --glass-blur: 28px;
+  --glass-sature: 140%;
 
   --surface: rgb(255 255 255 / 0.09);
   --surface-2: rgb(255 255 255 / 0.06);
   --surface-3: rgb(255 255 255 / 0.04);
 
-  --text: #eef1f4;
-  --text-muted: #b3bcc5;
-  --text-faint: #828c96;
+  --panneau-chaud: linear-gradient(
+    140deg,
+    rgb(233 142 121 / 0.20) 0%,
+    rgb(184 91 69 / 0.12) 100%
+  );
+  --panneau-chaud-bord: rgb(233 142 121 / 0.22);
+  --panneau-froid: linear-gradient(
+    140deg,
+    rgb(134 215 224 / 0.16) 0%,
+    rgb(255 255 255 / 0.04) 100%
+  );
+
+  --text: #f8f8f6;
+  --text-muted: #b6bfc7;
+  --text-faint: #88949e;
 
   --border: rgb(255 255 255 / 0.12);
-  --border-strong: rgb(255 255 255 / 0.22);
+  --border-strong: rgb(255 255 255 / 0.24);
+  --filet: rgb(255 255 255 / 0.10);
 
-  --accent: #f0b195;
-  --accent-soft: rgb(240 177 149 / 0.18);
-  --accent-contrast: #241a15;
+  --accent: #f1a08d;
+  --accent-vif: #e98e79;
+  --accent-clair: #f4b8a6;
+  --accent-degrade: linear-gradient(135deg, #f1a08d 0%, #d77769 100%);
+  --accent-soft: rgb(241 160 141 / 0.16);
+  --accent-soft-fort: rgb(241 160 141 / 0.26);
+  --accent-contrast: #221512;
+  --anneau-focus: rgb(241 160 141 / 0.28);
 
-  --warn: #f2c3ab;
-  --warn-soft: rgb(242 195 171 / 0.14);
+  --eau: #86d7e0;
+  --eau-clair: #b2e6ec;
+  --eau-soft: rgb(134 215 224 / 0.16);
+
+  --marqueur: #f5e779;
+  --marqueur-halo: rgb(245 231 121 / 0.35);
+
+  --warn: #f0c98d;
+  --warn-soft: rgb(240 201 141 / 0.14);
   --danger: #f0909e;
   --danger-soft: rgb(240 144 158 / 0.14);
 
-  --lueur: 0 0 22px rgb(255 255 255 / 0.18);
+  --data-proteines: #f1a08d;
+  --data-glucides: #86c3d4;
+  --data-lipides: #e8c3a8;
+
+  --lueur: 0 0 24px rgb(255 255 255 / 0.16);
 }
 
 @theme inline {
@@ -130,6 +215,8 @@
   --color-warn-soft: var(--warn-soft);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
+  --color-eau: var(--eau);
+  --color-marqueur: var(--marqueur);
 }
 
 /* ==========================================================================
@@ -142,6 +229,8 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* Aucune barre horizontale accidentelle, même avec les halos décoratifs. */
+  overflow-x: hidden;
 }
 
 body {
@@ -151,23 +240,40 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background-color 0.6s var(--ease-out-soft), color 0.3s var(--ease-out-soft);
+  transition:
+    background-color var(--t-lente) var(--ease-out-soft),
+    color var(--t-douce) var(--ease-out-soft);
 }
 
-/* Lavis aquarelle : nappes diffuses, froid en haut, chaud en bas.
-   `fixed` : le dégradé ne défile pas, comme un fond peint. */
+/* Hiérarchie éditoriale : titres nets, aérés, jamais massifs. */
+h1, h2, h3 {
+  letter-spacing: -0.018em;
+  text-wrap: balance;
+}
+
+/* Halos diffus : cyan et brume en haut, corail et pêche en bas.
+   `fixed` : le fond ne défile pas, comme une lumière peinte derrière l'UI. */
 body::before {
   content: "";
   position: fixed;
-  inset: 0;
+  inset: -12%;
   z-index: -20;
   pointer-events: none;
   background:
-    radial-gradient(120% 80% at 50% 100%, var(--lavis-chaud) 0%, transparent 62%),
-    radial-gradient(90% 60% at 85% 88%, var(--lavis-peche) 0%, transparent 55%),
-    radial-gradient(100% 70% at 20% 0%, var(--lavis-froid) 0%, transparent 60%),
-    linear-gradient(170deg, var(--lavis-neutre) 0%, var(--bg-base) 45%, var(--lavis-chaud) 100%);
-  transition: opacity 0.6s var(--ease-out-soft);
+    radial-gradient(58% 46% at 14% 6%, var(--halo-cyan) 0%, transparent 66%),
+    radial-gradient(66% 50% at 90% 4%, var(--halo-peche) 0%, transparent 64%),
+    radial-gradient(84% 62% at 80% 98%, var(--halo-corail) 0%, transparent 66%),
+    radial-gradient(70% 55% at 6% 88%, var(--halo-froid) 0%, transparent 62%),
+    linear-gradient(168deg, var(--halo-froid) 0%, var(--bg-base) 46%, transparent 100%);
+  transition: opacity var(--t-lente) var(--ease-out-soft);
+  will-change: transform;
+  animation: derive-halos 34s var(--ease-out-soft) infinite alternate;
+}
+
+/* Respiration très lente des halos : perceptible sans jamais distraire. */
+@keyframes derive-halos {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(-1.5%, 1.2%, 0) scale(1.05); }
 }
 
 /* Grain de papier : casse le côté numérique des aplats.
@@ -178,13 +284,14 @@ body::after {
   inset: 0;
   z-index: -19;
   pointer-events: none;
-  opacity: 0.4;
+  opacity: var(--grain-opacite);
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
 }
 
-.dark body::after {
-  opacity: 0.22;
+::selection {
+  background: var(--accent-soft-fort);
+  color: var(--text);
 }
 
 /* ==========================================================================
@@ -195,18 +302,32 @@ body::after {
   /* Carte en verre dépoli — signature du style */
   .glass {
     background: var(--glass-bg);
-    backdrop-filter: blur(var(--glass-blur)) saturate(150%);
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sature));
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sature));
     border: 1px solid var(--glass-border);
     box-shadow: var(--glass-shadow);
+    transition:
+      background-color var(--t-douce) var(--ease-out-soft),
+      border-color var(--t-douce) var(--ease-out-soft),
+      box-shadow var(--t-douce) var(--ease-out-soft);
   }
 
   .glass-strong {
     background: var(--glass-bg-strong);
-    backdrop-filter: blur(calc(var(--glass-blur) + 8px)) saturate(165%);
-    -webkit-backdrop-filter: blur(calc(var(--glass-blur) + 8px)) saturate(165%);
+    backdrop-filter: blur(calc(var(--glass-blur) + 10px)) saturate(calc(var(--glass-sature) + 15%));
+    -webkit-backdrop-filter: blur(calc(var(--glass-blur) + 10px)) saturate(calc(var(--glass-sature) + 15%));
     border: 1px solid var(--glass-border);
     box-shadow: var(--glass-shadow);
+    transition:
+      background-color var(--t-douce) var(--ease-out-soft),
+      border-color var(--t-douce) var(--ease-out-soft),
+      box-shadow var(--t-douce) var(--ease-out-soft);
+  }
+
+  /* Élévation au survol, réservée aux cartes cliquables */
+  .glass-interactif:hover {
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-lift);
   }
 
   /* Reflet supérieur : donne l'épaisseur du verre */
@@ -218,38 +339,97 @@ body::after {
     content: "";
     position: absolute;
     inset: 0 0 auto 0;
-    height: 55%;
-    background: linear-gradient(180deg, rgb(255 255 255 / 0.28), transparent);
+    height: 52%;
+    background: linear-gradient(
+      180deg,
+      rgb(255 255 255 / 0.34) 0%,
+      rgb(255 255 255 / 0.06) 60%,
+      transparent 100%
+    );
     pointer-events: none;
   }
   .dark .glass-sheen::after {
-    background: linear-gradient(180deg, rgb(255 255 255 / 0.06), transparent);
+    background: linear-gradient(180deg, rgb(255 255 255 / 0.07), transparent);
   }
 
-  /* Grands nombres : graisse fine, lueur diffuse */
+  /* Grande carte éditoriale : rayon maximal, réservé aux blocs de tête.
+     Déclarée après les utilitaires générés : elle l'emporte sur `rounded-*`. */
+  .carte-editoriale {
+    border-radius: var(--radius-xl2);
+  }
+  @media (width >= 40rem) {
+    .carte-editoriale { border-radius: var(--radius-xl3); }
+  }
+
+  /* Panneau secondaire chaud : informations d'appoint, corail translucide */
+  .panneau-chaud {
+    background: var(--panneau-chaud);
+    border: 1px solid var(--panneau-chaud-bord);
+  }
+
+  /* Panneau secondaire froid : contrepoint cyan, même densité visuelle */
+  .panneau-froid {
+    background: var(--panneau-froid);
+    border: 1px solid var(--border);
+  }
+
+  /* Grands nombres : graisse fine, chasse fixe, lueur diffuse */
   .chiffre {
     font-weight: 300;
-    letter-spacing: -0.03em;
+    letter-spacing: -0.032em;
     font-variant-numeric: tabular-nums;
     text-shadow: var(--lueur);
   }
 
-  /* Intitulés : petites capitales espacées */
+  /* Échelle des valeurs : fluide, jamais coupée, jamais démesurée */
+  .valeur-sm { font-size: clamp(1.65rem, 1.35rem + 1.2vw, 2.1rem); }
+  .valeur-md { font-size: clamp(2.15rem, 1.6rem + 2.2vw, 3rem); }
+  .valeur-lg { font-size: clamp(2.6rem, 1.9rem + 3.2vw, 3.75rem); }
+
+  /* Unité : subordonnée à la valeur qu'elle accompagne */
+  .unite {
+    font-weight: 400;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    text-shadow: none;
+  }
+
+  /* Intitulés : discrets, espacés, toujours lisibles */
   .etiquette {
     font-size: 0.7rem;
-    font-weight: 400;
-    letter-spacing: 0.12em;
+    font-weight: 500;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--text-muted);
   }
 
-  .lueur-texte {
-    text-shadow: var(--lueur);
+  .lueur-texte { text-shadow: var(--lueur); }
+
+  /* Point lumineux jaune pâle : uniquement sur une valeur active */
+  .marqueur-actif {
+    background: var(--marqueur);
+    box-shadow: 0 0 0 4px var(--marqueur-halo);
   }
+
+  /* Filet de séparation, plus doux qu'une bordure pleine */
+  .filet { border-color: var(--filet); }
+
+  /* Cible tactile confortable, sans imposer de largeur */
+  .cible-tactile { min-height: 44px; min-width: 44px; }
 
   .text-balance { text-wrap: balance; }
   .text-pretty { text-wrap: pretty; }
   .tnum { font-variant-numeric: tabular-nums; }
+}
+
+/* Repli quand le flou d'arrière-plan n'est pas pris en charge :
+   surfaces plus opaques, pour garder le contraste du texte. */
+@supports not ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
+  .glass { background: rgb(255 255 255 / 0.82); }
+  .glass-strong { background: rgb(255 255 255 / 0.90); }
+  .dark .glass { background: rgb(30 37 42 / 0.88); }
+  .dark .glass-strong { background: rgb(30 37 42 / 0.94); }
 }
 
 /* Barre de défilement discrète */
@@ -262,10 +442,11 @@ body::after {
   background-clip: content-box;
 }
 
+/* Focus clavier : net, coloré, jamais coupé par un coin arrondi */
 :focus-visible {
   outline: 2px solid var(--accent);
-  outline-offset: 2px;
-  border-radius: 8px;
+  outline-offset: 3px;
+  border-radius: 12px;
 }
 
 @media (prefers-reduced-motion: reduce) {

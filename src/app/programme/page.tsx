@@ -78,7 +78,10 @@ export default function PageProgramme() {
   if (chargement) {
     return (
       <div className="grid min-h-[60vh] place-items-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--accent)]" />
+        <div
+          role="status" aria-label="Chargement en cours"
+          className="h-9 w-9 animate-spin rounded-full border-2 border-[var(--border-strong)] border-t-[var(--accent)]"
+        />
       </div>
     );
   }

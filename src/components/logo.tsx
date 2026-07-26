@@ -16,7 +16,10 @@ export function LogoForge({
   return (
     <span
       aria-hidden
-      className={`grid shrink-0 place-items-center rounded-xl bg-[var(--accent)] ${className}`}
+      className={
+        "grid shrink-0 place-items-center rounded-[32%] "
+        + `bg-[image:var(--accent-degrade)] shadow-soft ${className}`
+      }
       style={{ width: taille, height: taille }}
     >
       <svg
@@ -60,7 +63,7 @@ export function MarqueForge({ taille = 32 }: { taille?: number }) {
   return (
     <span className="flex items-center gap-2.5">
       <LogoForge taille={taille} />
-      <span className="text-[0.95rem] font-bold tracking-[0.14em]">FORGE</span>
+      <span className="text-[0.95rem] font-semibold tracking-[0.16em] text-ink">FORGE</span>
     </span>
   );
 }

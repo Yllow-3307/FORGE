@@ -14,7 +14,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Carte, GrandChiffre, cx } from "./ui";
+import { Carte, GrandChiffre, survolCarte, cx } from "./ui";
 import { Bouteille } from "./bouteille";
 import { useApp } from "@/lib/useApp";
 import { libelleSeance } from "@/lib/useApp";
@@ -48,30 +48,50 @@ export const CATALOGUE_WIDGETS: {
 /* ---------------------------------------------------------------- Anneau */
 
 function Anneau({
-  pourcentage, taille = 84, epaisseur = 8, couleur = "var(--accent)", children,
+  pourcentage, taille = 84, epaisseur = 8, couleur = "var(--accent-vif)", children,
 }: {
   pourcentage: number; taille?: number; epaisseur?: number;
   couleur?: string; children?: React.ReactNode;
 }) {
-  const r = (taille - epaisseur) / 2;
+  // Trait affiné : l'arc reste précis et léger, dans l'esprit du reste de l'UI.
+  const trait = Math.max(3, epaisseur * 0.55);
+  const r = (taille - trait) / 2;
   const circonference = 2 * Math.PI * r;
   const rempli = Math.min(100, Math.max(0, pourcentage));
 
+  // Point lumineux posé en bout d'arc : repère de la valeur atteinte.
+  const angle = (rempli / 100) * 2 * Math.PI - Math.PI / 2;
+  const cx = taille / 2 + r * Math.cos(angle);
+  const cy = taille / 2 + r * Math.sin(angle);
+
   return (
     <div className="relative grid place-items-center" style={{ width: taille, height: taille }}>
-      <svg width={taille} height={taille} className="-rotate-90">
-        <circle
-          cx={taille / 2} cy={taille / 2} r={r} fill="none"
-          stroke="var(--surface-2)" strokeWidth={epaisseur}
-        />
-        <motion.circle
-          cx={taille / 2} cy={taille / 2} r={r} fill="none"
-          stroke={couleur} strokeWidth={epaisseur} strokeLinecap="round"
-          strokeDasharray={circonference}
-          initial={{ strokeDashoffset: circonference }}
-          animate={{ strokeDashoffset: circonference * (1 - rempli / 100) }}
-          transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-        />
+      <svg width={taille} height={taille} className="overflow-visible">
+        <g className="origin-center -rotate-90" style={{ transformOrigin: "center" }}>
+          <circle
+            cx={taille / 2} cy={taille / 2} r={r} fill="none"
+            stroke="var(--surface-2)" strokeWidth={trait}
+          />
+          <motion.circle
+            cx={taille / 2} cy={taille / 2} r={r} fill="none"
+            stroke={couleur} strokeWidth={trait} strokeLinecap="round"
+            strokeDasharray={circonference}
+            initial={{ strokeDashoffset: circonference }}
+            animate={{ strokeDashoffset: circonference * (1 - rempli / 100) }}
+            transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+          />
+        </g>
+        {rempli > 2 && (
+          <motion.circle
+            cx={cx} cy={cy} r={trait * 0.62}
+            fill="var(--marqueur)"
+            stroke="var(--marqueur-halo)" strokeWidth={trait * 0.9}
+            initial={{ opacity: 0, scale: 0.4 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.55, ease: [0.22, 1, 0.36, 1] }}
+            style={{ transformOrigin: `${cx}px ${cy}px` }}
+          />
+        )}
       </svg>
       <div className="absolute grid place-items-center text-center">{children}</div>
     </div>
@@ -88,30 +108,36 @@ function WidgetLancerSeance({ taille }: { taille: TailleWidget }) {
   return (
     <Link href={repos ? "/programme" : "/seance"} className="block h-full">
       <Carte
-        whileHover={{ y: -3 }}
-        transition={{ type: "spring", stiffness: 400, damping: 28 }}
+        {...survolCarte}
         className={cx(
           "flex h-full items-center gap-4 p-5",
           taille === "grand" && "flex-col items-start justify-between",
         )}
       >
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-2xl">
+        <div
+          className={cx(
+            "grid h-12 w-12 shrink-0 place-items-center rounded-2xl text-2xl",
+            repos ? "panneau-froid" : "panneau-chaud",
+          )}
+        >
           {repos ? "🌙" : "🔥"}
         </div>
         <div className="min-w-0 flex-1">
           <p className="etiquette">
             {repos ? "Aujourd'hui" : "Séance du jour"}
           </p>
-          <p className="font-bold leading-tight text-balance">{libelleSeance(seancesDuJour)}</p>
+          <p className="mt-0.5 text-[1.05rem] font-medium leading-tight text-balance">
+            {libelleSeance(seancesDuJour)}
+          </p>
           {!repos && (
-            <p className="mt-0.5 text-xs text-muted">
+            <p className="mt-1 text-xs text-muted">
               {duree} min · {serie > 0 ? `série de ${serie}` : "on démarre"}
             </p>
           )}
-          {repos && <p className="mt-0.5 text-xs text-muted">Récupération programmée</p>}
+          {repos && <p className="mt-1 text-xs text-muted">Récupération programmée</p>}
         </div>
         {!repos && (
-          <span className="shrink-0 rounded-pill bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[var(--accent-contrast)]">
+          <span className="shrink-0 rounded-pill bg-[image:var(--accent-degrade)] px-4 py-2 text-sm font-semibold text-[var(--accent-contrast)] shadow-soft">
             Lancer
           </span>
         )}
@@ -136,10 +162,13 @@ function WidgetHydratation({ taille }: { taille: TailleWidget }) {
     return (
       <Carte className="flex h-full flex-col items-center justify-center gap-1.5 p-3">
         <Bouteille pourcentage={scores.hydratation} hauteur={78} afficherValeur={false} />
-        <p className="chiffre text-base leading-none">{litres} L</p>
+        <p className="chiffre text-base leading-none">
+          {litres}<span className="unite ml-1 text-[0.5rem]">L</span>
+        </p>
         <button
           onClick={() => boire(250)}
-          className="rounded-pill bg-[var(--surface-2)] px-2.5 py-1 text-[0.62rem] font-medium transition hover:bg-[var(--accent-soft)]"
+          className="rounded-pill bg-[var(--eau-soft)] px-3 py-1.5 text-[0.62rem] font-medium
+                     transition-colors duration-200 hover:bg-[var(--accent-soft)]"
         >
           +25 cl
         </button>
@@ -156,18 +185,18 @@ function WidgetHydratation({ taille }: { taille: TailleWidget }) {
       />
       <div className="min-w-0 flex-1">
         <p className="etiquette">Hydratation</p>
-        <p className="mt-1 chiffre text-3xl leading-none">
+        <p className="mt-1.5 chiffre valeur-sm leading-none">
           {litres}
-          <span className="ml-1 text-[0.34em] font-normal uppercase tracking-widest text-muted">
-            / {cible} L
-          </span>
+          <span className="unite ml-1.5 text-[0.3em]">/ {cible} L</span>
         </p>
-        <div className="mt-3 flex flex-wrap gap-1.5">
+        <div className="mt-3.5 flex flex-wrap gap-1.5">
           {[250, 500, 750].map((ml) => (
             <button
               key={ml}
               onClick={() => boire(ml)}
-              className="rounded-pill bg-[var(--surface-2)] px-3 py-1.5 text-xs font-medium transition hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]"
+              className="rounded-pill bg-[var(--eau-soft)] px-3 py-2 text-xs font-medium
+                         transition-colors duration-200
+                         hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]"
             >
               +{ml / 10} cl
             </button>
@@ -186,16 +215,15 @@ function WidgetMacros() {
 
   const n = programme.nutrition;
   const lignes = [
-    { nom: "Protéines", val: Math.round(totaux.proteines), cible: n.proteinesG, couleur: "var(--accent)" },
-    { nom: "Glucides", val: Math.round(totaux.glucides), cible: n.glucidesG, couleur: "#7fb3c8" },
-    { nom: "Lipides", val: Math.round(totaux.lipides), cible: n.lipidesG, couleur: "var(--color-peach)" },
+    { nom: "Protéines", val: Math.round(totaux.proteines), cible: n.proteinesG, couleur: "var(--data-proteines)" },
+    { nom: "Glucides", val: Math.round(totaux.glucides), cible: n.glucidesG, couleur: "var(--data-glucides)" },
+    { nom: "Lipides", val: Math.round(totaux.lipides), cible: n.lipidesG, couleur: "var(--data-lipides)" },
   ];
 
   return (
     <Link href="/nutrition" className="block h-full">
       <Carte
-        whileHover={{ y: -3 }}
-        transition={{ type: "spring", stiffness: 400, damping: 28 }}
+        {...survolCarte}
         className="flex h-full flex-col justify-between gap-3 p-5"
       >
         <div className="flex items-start justify-between gap-3">
@@ -210,14 +238,16 @@ function WidgetMacros() {
           </Anneau>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           {lignes.map((l) => (
             <div key={l.nom}>
               <div className="mb-1 flex justify-between text-xs">
                 <span className="text-muted">{l.nom}</span>
-                <span className="tnum font-medium">{l.val} / {l.cible} g</span>
+                <span className="tnum font-medium">
+                  {l.val} <span className="text-faint">/ {l.cible} g</span>
+                </span>
               </div>
-              <div className="h-1.5 overflow-hidden rounded-pill bg-[var(--surface-2)]">
+              <div className="h-1 overflow-hidden rounded-pill bg-[var(--surface-2)]">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${Math.min(100, (l.val / l.cible) * 100)}%` }}
@@ -243,9 +273,9 @@ function WidgetReussites({ taille }: { taille: TailleWidget }) {
 
   if (taille === "petit") {
     return (
-      <Carte className="flex h-full flex-col items-center justify-center gap-0.5 p-3">
+      <Carte className="flex h-full flex-col items-center justify-center gap-1 p-3">
         <span className="text-2xl">🔥</span>
-        <p className="chiffre text-3xl leading-none">{serie}</p>
+        <p className="chiffre valeur-sm leading-none">{serie}</p>
         <p className="text-center text-[0.65rem] leading-tight text-muted">
           {`séance${serie > 1 ? "s" : ""} d'affilée`}
         </p>
@@ -259,11 +289,11 @@ function WidgetReussites({ taille }: { taille: TailleWidget }) {
       <div className="flex items-center gap-4">
         <span className="text-4xl">🔥</span>
         <div>
-          <p className="text-3xl font-bold tnum leading-none">{serie}</p>
-          <p className="text-xs text-muted">séances d&apos;affilée</p>
+          <p className="chiffre valeur-md leading-none">{serie}</p>
+          <p className="mt-1 text-xs text-muted">séances d&apos;affilée</p>
         </div>
       </div>
-      <p className="text-xs text-muted">{total} séance{total > 1 ? "s" : ""} au total</p>
+      <p className="text-xs text-faint">{total} séance{total > 1 ? "s" : ""} au total</p>
     </Carte>
   );
 }
@@ -298,8 +328,7 @@ function WidgetPoids({ taille }: { taille: TailleWidget }) {
   return (
     <Link href="/mesures" className="block h-full">
       <Carte
-        whileHover={{ y: -3 }}
-        transition={{ type: "spring", stiffness: 400, damping: 28 }}
+        {...survolCarte}
         className={cx("flex h-full flex-col p-5", taille === "grand" && "justify-between")}
       >
         <div className="flex items-start justify-between">
@@ -307,7 +336,7 @@ function WidgetPoids({ taille }: { taille: TailleWidget }) {
           {mesures.length > 1 && (
             <span
               className={cx(
-                "rounded-pill px-2.5 py-1 text-xs font-semibold tnum",
+                "shrink-0 rounded-pill px-2.5 py-1 text-xs font-semibold tnum",
                 delta < 0 ? "bg-[var(--accent-soft)] text-[var(--accent)]"
                   : delta > 0 ? "bg-[var(--warn-soft)] text-[var(--warn)]"
                     : "bg-[var(--surface-2)] text-muted",
@@ -319,14 +348,45 @@ function WidgetPoids({ taille }: { taille: TailleWidget }) {
         </div>
 
         {chemin ? (
-          <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="mt-3 h-16 w-full">
-            <motion.path
-              d={chemin} fill="none" stroke="var(--accent)" strokeWidth={3}
-              strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"
-              initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-              transition={{ duration: 1, ease: "easeOut" }}
+          <div className="relative mt-3 h-16 w-full">
+            <svg
+              viewBox="0 0 100 100" preserveAspectRatio="none"
+              className="h-full w-full overflow-visible"
+            >
+              <defs>
+                {/* Aplat dégradé sous la courbe : donne du volume sans bruit. */}
+                <linearGradient id="degrade-poids" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--accent-clair)" stopOpacity="0.28" />
+                  <stop offset="100%" stopColor="var(--accent-clair)" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              <motion.path
+                d={`${chemin} L100,110 L0,110 Z`} fill="url(#degrade-poids)" stroke="none"
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                transition={{ duration: 0.8, delay: 0.35 }}
+              />
+              <motion.path
+                d={chemin} fill="none" stroke="var(--accent-vif)" strokeWidth={2}
+                strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"
+                initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
+                transition={{ duration: 1, ease: "easeOut" }}
+              />
+            </svg>
+            {/* Marqueur de la dernière pesée : point jaune pâle, hors du SVG
+                pour rester parfaitement rond malgré `preserveAspectRatio`. */}
+            <motion.span
+              aria-hidden
+              className="marqueur-actif pointer-events-none absolute h-2 w-2 rounded-full"
+              style={{
+                left: "100%",
+                top: `${100 - ((dernier - min) / amplitude) * 100}%`,
+                translate: "-100% -50%",
+              }}
+              initial={{ opacity: 0, scale: 0.4 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, delay: 0.9, ease: [0.22, 1, 0.36, 1] }}
             />
-          </svg>
+          </div>
         ) : (
           <p className="mt-3 text-xs text-muted">
             Enregistrez une pesée pour voir la courbe apparaître.
@@ -350,32 +410,39 @@ function WidgetProgression({ taille }: { taille: TailleWidget }) {
   return (
     <Link href="/programme" className="block h-full">
       <Carte
-        whileHover={{ y: -3 }}
-        transition={{ type: "spring", stiffness: 400, damping: 28 }}
+        {...survolCarte}
         className={cx("flex h-full p-5", taille === "grand" ? "flex-col justify-between" : "items-center gap-5")}
       >
         <div className="min-w-0 flex-1">
           <p className="etiquette">
             Progression du programme
           </p>
-          <p className="mt-1 font-bold">
+          <p className="mt-1 text-[1.05rem] font-medium">
             Semaine {semaine} <span className="font-normal text-muted">sur {total}</span>
           </p>
-          <div className="mt-2.5 h-2 overflow-hidden rounded-pill bg-[var(--surface-2)]">
+          <div className="relative mt-3 h-1.5 rounded-pill bg-[var(--surface-2)]">
             <motion.div
               initial={{ width: 0 }} animate={{ width: `${pct}%` }}
               transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-              className="h-full rounded-pill bg-[var(--accent)]"
+              className="h-full rounded-pill bg-[image:var(--accent-degrade)]"
+            />
+            {/* Repère de la semaine en cours, seul point jaune de la carte. */}
+            <motion.span
+              aria-hidden
+              className="marqueur-actif absolute top-1/2 h-2 w-2 -translate-y-1/2 rounded-full"
+              initial={{ opacity: 0, left: 0 }}
+              animate={{ opacity: 1, left: `calc(${pct}% - 4px)` }}
+              transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
             />
           </div>
-          <p className="mt-2 text-xs text-muted">
+          <p className="mt-3 text-xs text-muted">
             {restantes > 0
               ? `Plus que ${restantes} semaine${restantes > 1 ? "s" : ""} avant le prochain objectif`
               : "Dernière semaine du cycle : bilan à faire"}
           </p>
         </div>
         {taille === "rectangle" && (
-          <span className="shrink-0 text-3xl font-bold tnum text-[var(--accent)]">{pct}%</span>
+          <span className="chiffre shrink-0 valeur-sm text-[var(--accent)]">{pct}%</span>
         )}
       </Carte>
     </Link>
