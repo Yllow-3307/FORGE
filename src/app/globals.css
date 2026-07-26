@@ -373,12 +373,11 @@ body::after {
     border: 1px solid var(--border);
   }
 
-  /* Grands nombres : graisse fine, chasse fixe, lueur diffuse */
+  /* Grands nombres : graisse légère, chasse fixe */
   .chiffre {
     font-weight: 300;
     letter-spacing: -0.032em;
     font-variant-numeric: tabular-nums;
-    text-shadow: var(--lueur);
   }
 
   /* Échelle des valeurs : fluide, jamais coupée, jamais démesurée */
