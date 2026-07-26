@@ -3,7 +3,7 @@
 /**
  * parametres/page.tsx — Écran Paramètres.
  *
- * Trois sections : Compte, « On t'emmerde » (notifications) et Gestion du
+ * Trois sections : Compte, « Rappels & notifications » et Gestion du
  * programme. Les actions destructrices demandent une confirmation explicite.
  */
 
@@ -419,7 +419,7 @@ export default function PageParametres() {
       {/* -------------------------- Notifications ------------------------- */}
       <section className="space-y-3">
         <h2 className="px-1 text-sm font-semibold uppercase tracking-wider text-faint">
-          On t&apos;emmerde
+          Rappels &amp; notifications
         </h2>
         <Carte className="space-y-2.5 p-5 sm:p-6">
           <p className="mb-2 text-sm text-muted text-pretty">
