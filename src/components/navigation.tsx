@@ -26,9 +26,12 @@ const LIENS_PRINCIPAUX = [
 const LIENS_SECONDAIRES = [
   { href: "/mesures", libelle: "Mesures", icone: "⚖️" },
   { href: "/parametres", libelle: "Paramètres", icone: "⚙️" },
+  { href: "/compte", libelle: "Compte", icone: "👤" },
 ] as const;
 
-const TOUS = [...LIENS_PRINCIPAUX, ...LIENS_SECONDAIRES];
+// La barre de bureau affiche les 5 principaux + Mesures et Paramètres ;
+// « Compte » vit dans l'icône dédiée, à droite.
+const TOUS = [...LIENS_PRINCIPAUX, LIENS_SECONDAIRES[0], LIENS_SECONDAIRES[1]];
 
 export function Navigation() {
   const chemin = usePathname();
@@ -80,6 +83,19 @@ export function Navigation() {
             })}
           </div>
 
+          <Link
+            href="/compte"
+            aria-label="Mon compte"
+            title="Mon compte"
+            className={cx(
+              "grid h-9 w-9 shrink-0 place-items-center rounded-full text-base transition-colors",
+              estActif("/compte")
+                ? "bg-[var(--accent)]"
+                : "bg-[var(--surface-2)] hover:bg-[var(--accent-soft)]",
+            )}
+          >
+            👤
+          </Link>
           <ThemeToggle />
         </nav>
       </header>
@@ -99,14 +115,17 @@ export function Navigation() {
       </header>
 
       {/* ---------- Barre inférieure mobile ---------- */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 px-3 pb-3 md:hidden">
+      <nav
+        className="fixed inset-x-0 bottom-0 z-40 px-3 md:hidden"
+        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+      >
         <AnimatePresence>
           {menuOuvert && (
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 12 }}
-              className="glass-strong mb-2 grid grid-cols-2 gap-2 rounded-xl2 p-2"
+              className="glass-strong mb-2 grid grid-cols-3 gap-2 rounded-xl2 p-2"
             >
               {LIENS_SECONDAIRES.map((l) => (
                 <Link

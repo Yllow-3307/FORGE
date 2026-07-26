@@ -7,8 +7,9 @@
  * programme. Les actions destructrices demandent une confirmation explicite.
  */
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Bouton, Carte, Champ, Encart, Pastille, Saisie, cx } from "@/components/ui";
 import { useTheme } from "@/components/theme";
 import { useApp } from "@/lib/useApp";
@@ -16,8 +17,14 @@ import {
   effacerToutesDonnees, exporterHistorique, lireJournal, majReglages,
 } from "@/lib/suivi";
 import {
-  enregistrerFiche, stockageDistant, supabase, supprimerFiche, telecharger,
+  enregistrerFiche, stockageDistant, supprimerFiche, telecharger,
 } from "@/lib/stockage";
+import { useAuth } from "@/lib/auth";
+import {
+  demanderPermission, instantanePermission, instantanePermissionServeur,
+  notificationTest, souscrirePermission,
+} from "@/lib/notifications";
+import { useModeInstalle } from "@/components/pwa";
 
 function Interrupteur({
   actif, onChange, label, description,
@@ -58,6 +65,20 @@ function Interrupteur({
 export default function PageParametres() {
   const { fiche, reglages, programme, rafraichir } = useApp();
   const { theme, toggle } = useTheme();
+  const router = useRouter();
+  const { utilisateur, authDisponible, deconnexion, changerMotDePasse } = useAuth();
+  const installe = useModeInstalle();
+
+  // Source externe : instantané serveur distinct, donc pas de divergence
+  // d'hydratation ni d'effet superflu.
+  const permission = useSyncExternalStore(
+    souscrirePermission,
+    instantanePermission,
+    instantanePermissionServeur,
+  );
+  const [nouveauMdp, setNouveauMdp] = useState("");
+  const [messageMdp, setMessageMdp] = useState("");
+  const [formMdp, setFormMdp] = useState(false);
 
   const [nom, setNom] = useState("");
   const [email, setEmail] = useState("");
@@ -68,12 +89,12 @@ export default function PageParametres() {
   // On synchronise les champs sur les réglages chargés en dérivant l'état
   // pendant le rendu : un effet créerait un rendu intermédiaire avec des
   // champs vides, visible à l'écran.
-  const cle = `${reglages.nomUtilisateur}|${reglages.email}|${fiche?.profil.nom ?? ""}`;
+  const cle = `${reglages.nomUtilisateur}|${reglages.email}|${fiche?.profil.nom ?? ""}|${utilisateur?.email ?? ""}`;
   const [cleVue, setCleVue] = useState<string | null>(null);
   if (cleVue !== cle) {
     setCleVue(cle);
     setNom(reglages.nomUtilisateur || fiche?.profil.nom || "");
-    setEmail(reglages.email);
+    setEmail(utilisateur?.email ?? reglages.email);
     setNbEntrees(lireJournal().length);
   }
 
@@ -98,16 +119,29 @@ export default function PageParametres() {
   };
 
   const seDeconnecter = async () => {
-    const sb = supabase();
-    if (sb) await sb.auth.signOut();
-    window.location.href = "/";
+    await deconnexion();
+    router.push("/compte");
+  };
+
+  const activerNotifications = async () => {
+    const etat = await demanderPermission();
+    if (etat === "granted") await notificationTest();
+  };
+
+  const validerMdp = async () => {
+    if (nouveauMdp.length < 8) {
+      setMessageMdp("Le mot de passe doit contenir au moins 8 caractères.");
+      return;
+    }
+    const { erreur } = await changerMotDePasse(nouveauMdp);
+    setMessageMdp(erreur ?? "Mot de passe mis à jour.");
+    if (!erreur) { setNouveauMdp(""); setFormMdp(false); }
   };
 
   const supprimerCompte = async () => {
     if (fiche) await supprimerFiche(fiche.id);
     effacerToutesDonnees();
-    const sb = supabase();
-    if (sb) await sb.auth.signOut();
+    await deconnexion();
     window.location.href = "/";
   };
 
@@ -116,6 +150,35 @@ export default function PageParametres() {
       {/* ------------------------------ Compte ---------------------------- */}
       <section className="space-y-3">
         <h1 className="px-1 text-sm font-semibold uppercase tracking-wider text-faint">Compte</h1>
+
+        {authDisponible && (
+          <Carte className="p-6">
+            {utilisateur ? (
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[var(--accent-soft)] text-lg">
+                    ✅
+                  </span>
+                  <div>
+                    <p className="text-sm font-medium">Compte synchronisé</p>
+                    <p className="text-xs text-muted">{utilisateur.email}</p>
+                  </div>
+                </div>
+                <Pastille ton="accent">Données sauvegardées en ligne</Pastille>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium">Aucun compte connecté</p>
+                  <p className="mt-0.5 text-xs text-muted">
+                    Connectez-vous pour synchroniser vos données entre appareils.
+                  </p>
+                </div>
+                <Link href="/compte"><Bouton taille="sm">Se connecter</Bouton></Link>
+              </div>
+            )}
+          </Carte>
+        )}
 
         <Carte className="space-y-4 p-6">
           <div className="grid gap-4 sm:grid-cols-2">
@@ -143,19 +206,46 @@ export default function PageParametres() {
         </Carte>
 
         <Carte className="p-6">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <p className="text-sm font-medium">Mot de passe</p>
               <p className="mt-0.5 text-xs text-muted">
-                {stockageDistant()
-                  ? "Modifiable depuis votre espace de connexion."
-                  : "Aucun compte n'est nécessaire : vos données restent sur cet appareil."}
+                {utilisateur
+                  ? "Choisissez un nouveau mot de passe pour ce compte."
+                  : authDisponible
+                    ? "Connectez-vous pour gérer votre mot de passe."
+                    : "Aucun compte nécessaire : vos données restent sur cet appareil."}
               </p>
             </div>
-            <Bouton variante="fantome" taille="sm" disabled={!stockageDistant()}>
-              Modifier
+            <Bouton
+              variante="fantome" taille="sm" disabled={!utilisateur}
+              onClick={() => setFormMdp((v) => !v)}
+            >
+              {formMdp ? "Annuler" : "Modifier"}
             </Bouton>
           </div>
+
+          {formMdp && utilisateur && (
+            <div className="mt-4 space-y-3">
+              <Champ label="Nouveau mot de passe" aide="8 caractères minimum">
+                <Saisie
+                  type="password" autoComplete="new-password" value={nouveauMdp}
+                  onChange={(e) => setNouveauMdp(e.target.value)} placeholder="••••••••"
+                />
+              </Champ>
+              {messageMdp && (
+                <p className={cx(
+                  "rounded-2xl px-4 py-2.5 text-sm",
+                  messageMdp.startsWith("Mot de passe mis")
+                    ? "bg-[var(--accent-soft)] text-[var(--accent)]"
+                    : "bg-[var(--danger-soft)] text-[var(--danger)]",
+                )}>
+                  {messageMdp}
+                </p>
+              )}
+              <Bouton taille="sm" onClick={validerMdp}>Enregistrer le mot de passe</Bouton>
+            </div>
+          )}
         </Carte>
 
         <Carte className="p-6">
@@ -306,9 +396,43 @@ export default function PageParametres() {
             onChange={(v) => majNotif("bilanHebdo", v)}
           />
 
+          <div className="mt-4 rounded-2xl border border-[var(--border)] p-4">
+            {permission === "indisponible" ? (
+              <p className="text-xs text-muted text-pretty">
+                Ce navigateur ne prend pas en charge les notifications.
+              </p>
+            ) : permission === "granted" ? (
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium">Notifications autorisées</p>
+                  <p className="mt-0.5 text-xs text-muted text-pretty">
+                    {installe
+                      ? "L’application est installée : les rappels fonctionnent en arrière-plan."
+                      : "Installez l’application sur votre écran d’accueil pour recevoir les rappels même onglet fermé."}
+                  </p>
+                </div>
+                <Bouton variante="fantome" taille="sm" onClick={notificationTest}>
+                  Tester
+                </Bouton>
+              </div>
+            ) : permission === "denied" ? (
+              <p className="text-xs text-muted text-pretty">
+                Les notifications ont été refusées. Réactivez-les dans les réglages de
+                votre navigateur, à la ligne concernant ce site.
+              </p>
+            ) : (
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm text-muted text-pretty">
+                  Autorisez les notifications pour recevoir les rappels choisis ci-dessus.
+                </p>
+                <Bouton taille="sm" onClick={activerNotifications}>Autoriser</Bouton>
+              </div>
+            )}
+          </div>
+
           <p className="pt-2 text-xs text-faint text-pretty">
-            Les notifications système nécessitent l&apos;autorisation du navigateur et ne
-            fonctionnent que lorsque l&apos;application est installée sur l&apos;écran d&apos;accueil.
+            Les rappels sont planifiés localement sur votre appareil : aucun serveur
+            n&apos;est utilisé, et rien ne quitte votre téléphone.
           </p>
         </Carte>
       </section>
@@ -369,6 +493,10 @@ export default function PageParametres() {
           <div className="flex justify-between">
             <dt className="text-muted">Stockage</dt>
             <dd>{stockageDistant() ? "Supabase (synchronisé)" : "Local (cet appareil)"}</dd>
+          </div>
+          <div className="flex justify-between">
+            <dt className="text-muted">Mode</dt>
+            <dd>{installe ? "Application installée" : "Navigateur"}</dd>
           </div>
         </dl>
         <p className="mt-4 text-xs leading-relaxed text-faint text-pretty">

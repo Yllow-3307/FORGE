@@ -109,3 +109,82 @@ create policy "acces aux mesures de ses fiches" on public.mesures_poids
         and (f.utilisateur_id = auth.uid() or f.utilisateur_id is null)
     )
   );
+
+-- ============================================================================
+-- Rattachement automatique des fiches à l'utilisateur connecté
+--
+-- Sans cela, une fiche créée depuis le client avec utilisateur_id à NULL
+-- resterait visible par tous. Ce déclencheur force la propriété.
+-- ============================================================================
+
+create or replace function public.assigner_proprietaire()
+returns trigger
+language plpgsql
+security definer
+as $$
+begin
+  if new.utilisateur_id is null then
+    new.utilisateur_id := auth.uid();
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists fiches_proprietaire on public.fiches;
+create trigger fiches_proprietaire
+  before insert on public.fiches
+  for each row execute function public.assigner_proprietaire();
+
+-- ============================================================================
+-- Journal quotidien (repas, hydratation, séance réalisée)
+--
+-- Optionnel : l'application fonctionne sans, en stockage local. Créez ces
+-- tables si vous voulez synchroniser le suivi entre plusieurs appareils.
+-- ============================================================================
+
+create table if not exists public.journal (
+  id             uuid primary key default gen_random_uuid(),
+  fiche_id       uuid not null references public.fiches(id) on delete cascade,
+  date           date not null,
+  repas          jsonb not null default '[]'::jsonb,
+  hydratation_ml integer not null default 0,
+  seance_faite   boolean not null default false,
+  seance_nom     text,
+  accomplissement smallint,
+  ressenti       text,
+  energie        smallint check (energie between 1 and 5),
+  unique (fiche_id, date)
+);
+
+create index if not exists journal_fiche_idx on public.journal (fiche_id, date desc);
+
+create table if not exists public.progres_skills (
+  id         uuid primary key default gen_random_uuid(),
+  fiche_id   uuid not null references public.fiches(id) on delete cascade,
+  skill_id   text not null,
+  etape      smallint not null default 0,
+  actif      boolean not null default false,
+  validee_le date,
+  unique (fiche_id, skill_id)
+);
+
+alter table public.journal        enable row level security;
+alter table public.progres_skills enable row level security;
+
+drop policy if exists "acces au journal de ses fiches" on public.journal;
+create policy "acces au journal de ses fiches" on public.journal
+  for all using (
+    exists (
+      select 1 from public.fiches f
+      where f.id = fiche_id and f.utilisateur_id = auth.uid()
+    )
+  );
+
+drop policy if exists "acces aux skills de ses fiches" on public.progres_skills;
+create policy "acces aux skills de ses fiches" on public.progres_skills
+  for all using (
+    exists (
+      select 1 from public.fiches f
+      where f.id = fiche_id and f.utilisateur_id = auth.uid()
+    )
+  );

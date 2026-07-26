@@ -20,7 +20,7 @@ npm run dev          # http://localhost:3000
 L'application **fonctionne immédiatement, sans configuration** : les données
 sont stockées dans le navigateur (`localStorage`).
 
-### Activer la synchronisation Supabase (optionnel, gratuit)
+### Activer la synchronisation et les comptes (optionnel, gratuit)
 
 1. Créer un projet sur [supabase.com](https://supabase.com) (offre gratuite).
 2. Dans **SQL Editor**, exécuter le contenu de [`supabase/schema.sql`](supabase/schema.sql).
@@ -31,8 +31,10 @@ cp .env.local.example .env.local
 # puis renseigner NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_ANON_KEY
 ```
 
-Le basculement est automatique : sans clés, stockage local ; avec clés,
-synchronisation. La bannière d'accueil indique le mode actif.
+Le basculement est automatique : sans clés, stockage local et aucun compte
+requis ; avec clés, l'écran `/compte` propose connexion, inscription, lien
+magique et réinitialisation du mot de passe. La bannière d'accueil indique le
+mode actif.
 
 ---
 
@@ -122,6 +124,32 @@ validée par le test de parité.
 | **Progrès** | Skills suivis avec l'étape en cours, catalogue complet des 16 figures et leurs paliers |
 | **Mesures** | Pesée (poids, taille, énergie) et courbe avec moyenne mobile sur 7 jours |
 | **Paramètres** | Compte, thème, historique, notifications, changement de programme |
+| **Compte** | Connexion, inscription, lien magique, mot de passe oublié (ou explication du mode local) |
+
+---
+
+## Application mobile installable (PWA)
+
+L'application s'installe sur l'écran d'accueil et fonctionne **sans connexion**.
+
+- **Installation** : une invite apparaît après quelques minutes d'utilisation
+  sur Android et Chrome. Sur iPhone, utiliser *Partager → Sur l'écran d'accueil*.
+- **Hors ligne** : les pages du parcours principal sont mises en cache à
+  l'installation. Les données utilisateur vivant dans `localStorage`, tout
+  reste consultable et modifiable sans réseau ; un bandeau signale l'état.
+- **Raccourcis** : appui long sur l'icône → *Lancer ma séance*, *Noter un
+  repas*, *Me peser*.
+- **Mises à jour** : une bannière propose de recharger, plutôt que
+  d'interrompre une séance en cours.
+
+### Notifications
+
+Les rappels (séance, repas, hydratation, bilan) sont **planifiés localement**,
+sans serveur ni clés VAPID — contrainte du budget nul assumée.
+
+Conséquence, indiquée dans l'interface : ils se déclenchent lorsque
+l'application est ouverte ou installée et active en arrière-plan. Un système
+de notifications poussées exigerait un backend.
 
 ---
 
