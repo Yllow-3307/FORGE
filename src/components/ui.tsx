@@ -11,6 +11,7 @@
 
 import { motion, type HTMLMotionProps } from "framer-motion";
 import type { ReactNode } from "react";
+import { useCoarsePointer, useSurvolCarte } from "@/hooks/useCoarsePointer";
 
 export const cx = (...c: (string | false | null | undefined)[]) =>
   c.filter(Boolean).join(" ");
@@ -42,11 +43,16 @@ export const enfantCascade = {
   },
 };
 
-/** Survol commun aux surfaces cliquables : déplacement à peine perceptible. */
+/**
+ * @deprecated Utilisez le hook `useSurvolCarte()` à la place pour désactiver
+ * automatiquement le survol sur les écrans tactiles (pointer: coarse).
+ */
 export const survolCarte = {
   whileHover: { y: -2 },
   transition: { type: "spring" as const, stiffness: 400, damping: 30 },
 };
+
+export { useSurvolCarte, useCoarsePointer } from "@/hooks/useCoarsePointer";
 
 /* -------------------------------------------------------------------------
    Carte en verre dépoli
@@ -113,6 +119,7 @@ export function Bouton({
   children, variante = "principal", taille = "md",
   pleineLargeur = false, className = "", disabled, ...rest
 }: BoutonProps) {
+  const coarse = useCoarsePointer();
   // Hauteurs pensées pour une cible tactile d'au moins 44 px dès `md`.
   const tailles = {
     sm: "min-h-9 px-3.5 py-2 text-sm gap-1.5",
@@ -121,7 +128,7 @@ export function Bouton({
   };
   return (
     <motion.button
-      whileHover={disabled ? undefined : { scale: 1.01 }}
+      whileHover={disabled || coarse ? undefined : { scale: 1.01 }}
       whileTap={disabled ? undefined : { scale: 0.985 }}
       transition={{ type: "spring", stiffness: 420, damping: 30 }}
       disabled={disabled}
@@ -358,6 +365,7 @@ export function Choix<T extends string>({
   valeur: T;
   onChange: (v: T) => void;
 }) {
+  const coarse = useCoarsePointer();
   return (
     <div className="grid gap-2.5 sm:grid-cols-2">
       {options.map((o) => {
@@ -367,7 +375,7 @@ export function Choix<T extends string>({
             key={o.valeur}
             type="button"
             onClick={() => onChange(o.valeur)}
-            whileHover={{ y: -2 }}
+            whileHover={coarse ? undefined : { y: -2 }}
             whileTap={{ scale: 0.99 }}
             transition={{ type: "spring", stiffness: 400, damping: 30 }}
             aria-pressed={actif}
