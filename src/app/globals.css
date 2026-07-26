@@ -1,0 +1,276 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   Design tokens — palette « APP CALLISTHENIC » issue du moodboard.
+   Tailwind v4 : configuration CSS-first via @theme.
+   ========================================================================== */
+
+@theme {
+  /* --- Palette de marque --- */
+  --color-outer: #1b2727;      /* outer space  — fond sombre profond */
+  --color-mineral: #3c5148;    /* mineral green — surfaces sombres */
+  --color-asparagus: #6b8e4e;  /* asparagus    — accent principal */
+  --color-sage: #92aa83;       /* sauge        — accent secondaire */
+  --color-spring: #b2c5b2;     /* green spring — surfaces claires */
+  --color-geyser: #d5dddf;     /* geyser       — fond clair froid */
+  --color-cream: #f0ebeb;      /* crème        — fond clair chaud */
+  --color-peach: #ffd3ba;      /* accent chaud — mise en avant */
+  --color-wine: #5d031a;       /* accent profond — alertes fortes */
+
+  /* --- Rayons : coins très arrondis, façon visionOS --- */
+  --radius-xl2: 1.75rem;
+  --radius-xl3: 2.25rem;
+  --radius-pill: 999px;
+
+  /* --- Ombres douces et diffuses --- */
+  --shadow-soft: 0 2px 8px rgb(27 39 39 / 0.06), 0 8px 24px rgb(27 39 39 / 0.06);
+  --shadow-lift: 0 4px 12px rgb(27 39 39 / 0.08), 0 16px 40px rgb(27 39 39 / 0.10);
+  --shadow-glass: inset 0 1px 0 rgb(255 255 255 / 0.35), 0 8px 32px rgb(27 39 39 / 0.12);
+
+  /* --- Typographie --- */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  /* --- Transitions --- */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ==========================================================================
+   Variables sémantiques : bascule clair / sombre.
+   On raisonne en rôles (surface, texte, bordure) et non en couleurs brutes,
+   pour que chaque composant fonctionne dans les deux thèmes sans condition.
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+
+  --bg-base: #eceae4;
+  --bg-gradient-1: #c2d2d6;
+  --bg-gradient-2: #e2ddd4;
+  --bg-gradient-3: #9db78f;
+
+  /* Verre dépoli clair */
+  --glass-bg: rgb(255 255 255 / 0.62);
+  --glass-bg-strong: rgb(255 255 255 / 0.82);
+  --glass-border: rgb(255 255 255 / 0.7);
+  --glass-shadow: 0 8px 32px rgb(27 39 39 / 0.10);
+
+  --surface: #ffffff;
+  --surface-2: rgb(213 221 223 / 0.45);
+  --surface-3: rgb(178 197 178 / 0.28);
+
+  --text: #1b2727;
+  --text-muted: #5c6b66;
+  --text-faint: #8b9a95;
+
+  --border: rgb(27 39 39 / 0.10);
+  --border-strong: rgb(27 39 39 / 0.18);
+
+  --accent: #6b8e4e;
+  --accent-soft: rgb(107 142 78 / 0.14);
+  --accent-contrast: #ffffff;
+
+  --warn: #b8791f;
+  --warn-soft: rgb(255 211 186 / 0.55);
+  --danger: #8c1230;
+  --danger-soft: rgb(93 3 26 / 0.10);
+}
+
+.dark {
+  color-scheme: dark;
+
+  --bg-base: #141d1d;
+  --bg-gradient-1: #1b2727;
+  --bg-gradient-2: #22322c;
+  --bg-gradient-3: #3c5148;
+
+  /* Verre dépoli sombre */
+  --glass-bg: rgb(60 81 72 / 0.38);
+  --glass-bg-strong: rgb(60 81 72 / 0.62);
+  --glass-border: rgb(255 255 255 / 0.10);
+  --glass-shadow: 0 8px 32px rgb(0 0 0 / 0.35);
+
+  --surface: #1e2b2a;
+  --surface-2: rgb(60 81 72 / 0.35);
+  --surface-3: rgb(146 170 131 / 0.14);
+
+  --text: #eef3ee;
+  --text-muted: #a9bcb2;
+  --text-faint: #7d918a;
+
+  --border: rgb(255 255 255 / 0.10);
+  --border-strong: rgb(255 255 255 / 0.18);
+
+  --accent: #92aa83;
+  --accent-soft: rgb(146 170 131 / 0.18);
+  --accent-contrast: #12201a;
+
+  --warn: #ffd3ba;
+  --warn-soft: rgb(255 211 186 / 0.14);
+  --danger: #ff9aa8;
+  --danger-soft: rgb(255 154 168 / 0.12);
+}
+
+/* Exposition des variables sémantiques à Tailwind (bg-surface, text-muted...) */
+@theme inline {
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-ink: var(--text);
+  --color-muted: var(--text-muted);
+  --color-faint: var(--text-faint);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-contrast: var(--accent-contrast);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  min-height: 100dvh;
+  background-color: var(--bg-base);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.5s var(--ease-out-soft), color 0.3s var(--ease-out-soft);
+}
+
+/* Décor : nappes de couleur floutées, façon moodboard.
+   `fixed` + `-z-10` : le dégradé ne bouge pas au scroll et reste sous tout. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  pointer-events: none;
+  background:
+    radial-gradient(55rem 45rem at 8% -8%, var(--bg-gradient-3) 0%, transparent 62%),
+    radial-gradient(45rem 40rem at 102% 4%, var(--bg-gradient-1) 0%, transparent 58%),
+    radial-gradient(50rem 45rem at 45% 108%, var(--bg-gradient-2) 0%, transparent 62%),
+    radial-gradient(30rem 30rem at 78% 48%, var(--color-peach) 0%, transparent 55%);
+  opacity: 0.9;
+  transition: opacity 0.5s var(--ease-out-soft);
+}
+
+.dark body::before {
+  opacity: 0.42;
+}
+
+/* ==========================================================================
+   Utilitaires composants
+   ========================================================================== */
+
+@layer utilities {
+  /* Carte en verre dépoli — signature visuelle du moodboard */
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+  }
+
+  .glass-strong {
+    background: var(--glass-bg-strong);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+  }
+
+  /* Reflet supérieur discret, comme sur les cartes du moodboard */
+  .glass-sheen {
+    position: relative;
+    overflow: hidden;
+  }
+  .glass-sheen::after {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 45%;
+    background: linear-gradient(180deg, rgb(255 255 255 / 0.22), transparent);
+    pointer-events: none;
+  }
+  .dark .glass-sheen::after {
+    background: linear-gradient(180deg, rgb(255 255 255 / 0.07), transparent);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+  .text-pretty {
+    text-wrap: pretty;
+  }
+
+  /* Chiffres alignés (tableaux, horaires, macros) */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Barre de défilement discrète */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-faint);
+  background-clip: content-box;
+}
+
+/* Focus visible cohérent et accessible */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Respect des préférences système de réduction d'animation */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media print {
+  body::before {
+    display: none;
+  }
+  .glass,
+  .glass-strong {
+    background: #fff !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+    border-color: #ddd !important;
+  }
+}
