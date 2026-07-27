@@ -15,19 +15,38 @@ import { useState, useRef, useEffect } from "react";
 import { ThemeToggle } from "./theme";
 import { MarqueForge } from "./logo";
 import { cx } from "./ui";
+import type { LucideIcon } from "lucide-react";
+import {
+  House,
+  Flame,
+  Salad,
+  CalendarDays,
+  Trophy,
+  Scale,
+  Settings,
+  User,
+  Menu,
+  X,
+} from "lucide-react";
 
-const LIENS_PRINCIPAUX = [
-  { href: "/", libelle: "Accueil", icone: "🏠" },
-  { href: "/seance", libelle: "Séance", icone: "🔥" },
-  { href: "/nutrition", libelle: "Nutrition", icone: "🥗" },
-  { href: "/programme", libelle: "Programme", icone: "📆" },
-  { href: "/progres", libelle: "Progrès", icone: "🏆" },
+interface LienNavigation {
+  readonly href: string;
+  readonly libelle: string;
+  readonly icone: LucideIcon;
+}
+
+const LIENS_PRINCIPAUX: readonly LienNavigation[] = [
+  { href: "/", libelle: "Accueil", icone: House },
+  { href: "/seance", libelle: "Séance", icone: Flame },
+  { href: "/nutrition", libelle: "Nutrition", icone: Salad },
+  { href: "/programme", libelle: "Programme", icone: CalendarDays },
+  { href: "/progres", libelle: "Progrès", icone: Trophy },
 ] as const;
 
-const LIENS_SECONDAIRES = [
-  { href: "/mesures", libelle: "Mesures", icone: "⚖️" },
-  { href: "/parametres", libelle: "Paramètres", icone: "⚙️" },
-  { href: "/compte", libelle: "Compte", icone: "👤" },
+const LIENS_SECONDAIRES: readonly LienNavigation[] = [
+  { href: "/mesures", libelle: "Mesures", icone: Scale },
+  { href: "/parametres", libelle: "Paramètres", icone: Settings },
+  { href: "/compte", libelle: "Compte", icone: User },
 ] as const;
 
 // La barre de bureau affiche les 5 principaux + Mesures et Paramètres ;
@@ -112,13 +131,18 @@ export function Navigation() {
             title="Mon compte"
             className={cx(
               "grid h-10 w-10 shrink-0 place-items-center rounded-full text-base",
-              "transition-[background-color,box-shadow] duration-200",
+              "transition-[background-color,box-shadow,color] duration-200",
               estActif("/compte")
-                ? "bg-[image:var(--accent-degrade)] shadow-soft"
-                : "bg-[var(--surface-2)] hover:bg-[var(--accent-soft)]",
+                ? "bg-[image:var(--accent-degrade)] shadow-soft text-[var(--accent-contrast)]"
+                : "bg-[var(--surface-2)] hover:bg-[var(--accent-soft)] text-muted hover:text-ink",
             )}
           >
-            👤
+            <User
+              size={18}
+              strokeWidth={estActif("/compte") ? 2.25 : 1.75}
+              aria-hidden
+              className="shrink-0"
+            />
           </Link>
           <ThemeToggle />
         </nav>
@@ -156,24 +180,33 @@ export function Navigation() {
                 transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
                 className="glass-strong mb-2 grid grid-cols-2 gap-2 rounded-xl2 p-2"
               >
-                {LIENS_PLUS.map((l, index) => (
-                  <Link
-                    key={l.href}
-                    href={l.href}
-                    onClick={() => setMenuOuvert(false)}
-                    className={cx(
-                      "flex min-h-12 items-center gap-2 rounded-2xl px-3 py-2.5 text-sm",
-                      "transition-colors duration-200",
-                      estActif(l.href)
-                        ? "bg-[var(--accent-soft)] font-medium text-[var(--accent)]"
-                        : "text-muted hover:bg-[var(--surface-2)]",
-                    )}
-                    ref={index === 0 ? (el) => el?.focus() : undefined}
-                  >
-                    <span>{l.icone}</span>
-                    {l.libelle}
-                  </Link>
-                ))}
+                {LIENS_PLUS.map((l, index) => {
+                  const actif = estActif(l.href);
+                  const Icone = l.icone;
+                  return (
+                    <Link
+                      key={l.href}
+                      href={l.href}
+                      onClick={() => setMenuOuvert(false)}
+                      className={cx(
+                        "flex min-h-12 items-center gap-2 rounded-2xl px-3 py-2.5 text-sm",
+                        "transition-colors duration-200",
+                        actif
+                          ? "bg-[var(--accent-soft)] font-medium text-[var(--accent)]"
+                          : "text-muted hover:bg-[var(--surface-2)]",
+                      )}
+                      ref={index === 0 ? (el) => el?.focus() : undefined}
+                    >
+                      <Icone
+                        size={18}
+                        strokeWidth={actif ? 2.25 : 1.75}
+                        aria-hidden
+                        className="shrink-0"
+                      />
+                      {l.libelle}
+                    </Link>
+                  );
+                })}
               </motion.div>
             </>
           )}
@@ -182,6 +215,7 @@ export function Navigation() {
         <div className="glass-strong flex items-center justify-around rounded-xl2 px-1 py-1.5">
           {ONGLETS_MOBILE.map((l) => {
             const actif = estActif(l.href);
+            const Icone = l.icone;
             return (
               <Link
                 key={l.href}
@@ -201,7 +235,12 @@ export function Navigation() {
                     className="absolute inset-0 -z-10 rounded-2xl bg-[var(--accent-soft)]"
                   />
                 )}
-                <span className="text-base" aria-hidden>{l.icone}</span>
+                <Icone
+                  size={22}
+                  strokeWidth={actif ? 2.25 : 1.75}
+                  aria-hidden
+                  className="shrink-0"
+                />
                 <span className="w-full truncate text-center text-[0.65rem]">
                   {l.libelle}
                 </span>
@@ -229,7 +268,17 @@ export function Navigation() {
               secondaireActif || menuOuvert ? "text-[var(--accent)]" : "text-muted",
             )}
           >
-            <span className="text-base" aria-hidden>{menuOuvert ? "✕" : "⋯"}</span>
+            {(() => {
+              const IconePlus = menuOuvert ? X : Menu;
+              return (
+                <IconePlus
+                  size={22}
+                  strokeWidth={secondaireActif || menuOuvert ? 2.25 : 1.75}
+                  aria-hidden
+                  className="shrink-0"
+                />
+              );
+            })()}
             <span className="text-[0.65rem]">Plus</span>
           </button>
         </div>
