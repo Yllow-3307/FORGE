@@ -10,6 +10,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { amorcerAudio, signalFin, vibrer } from "@/lib/signal";
 
 export interface UseMinuteur {
   restant: number;
@@ -21,7 +22,11 @@ export interface UseMinuteur {
   ajouter: (secondes: number) => void;
 }
 
-export function useMinuteur(dureeInitiale: number, onFin?: () => void): UseMinuteur {
+export function useMinuteur(
+  dureeInitiale: number,
+  onFin?: () => void,
+  options?: { son?: boolean; vibration?: boolean }
+): UseMinuteur {
   const [restant, setRestant] = useState(dureeInitiale);
   const [actif, setActif] = useState(false);
   // Quand la durée demandée change, on réinitialise pendant le rendu plutôt
@@ -30,6 +35,11 @@ export function useMinuteur(dureeInitiale: number, onFin?: () => void): UseMinut
   const [dureeVue, setDureeVue] = useState(dureeInitiale);
   const finRef = useRef<number | null>(null);
   const onFinRef = useRef(onFin);
+  const signalEmisRef = useRef(false);
+
+  const son = options?.son ?? true;
+  const vibration = options?.vibration ?? true;
+  const optionsRef = useRef({ son, vibration });
 
   if (dureeVue !== dureeInitiale) {
     setDureeVue(dureeInitiale);
@@ -43,7 +53,12 @@ export function useMinuteur(dureeInitiale: number, onFin?: () => void): UseMinut
   // L'écriture d'une ref appartient à un effet, jamais au corps du rendu.
   useEffect(() => {
     onFinRef.current = onFin;
+    optionsRef.current = { son, vibration };
   });
+
+  useEffect(() => {
+    signalEmisRef.current = false;
+  }, [dureeInitiale]);
 
   useEffect(() => {
     if (!actif) return;
@@ -57,6 +72,11 @@ export function useMinuteur(dureeInitiale: number, onFin?: () => void): UseMinut
       if (reste <= 0) {
         finRef.current = null;
         setActif(false);
+        if (!signalEmisRef.current) {
+          signalEmisRef.current = true;
+          if (optionsRef.current.son) signalFin();
+          if (optionsRef.current.vibration) vibrer();
+        }
         onFinRef.current?.();
       }
     };
@@ -73,6 +93,8 @@ export function useMinuteur(dureeInitiale: number, onFin?: () => void): UseMinut
       return r;
     });
     setActif(true);
+    signalEmisRef.current = false;
+    amorcerAudio();
   }, []);
 
   const pause = useCallback(() => {
@@ -84,7 +106,9 @@ export function useMinuteur(dureeInitiale: number, onFin?: () => void): UseMinut
     finRef.current = null;
     setActif(false);
     setRestant(secondes ?? dureeInitiale);
+    signalEmisRef.current = false;
   }, [dureeInitiale]);
+
 
   const ajouter = useCallback((secondes: number) => {
     setRestant((r) => {
