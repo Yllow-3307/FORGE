@@ -16,12 +16,15 @@ import {
 } from "@/components/ui";
 import { valider } from "@/lib/moteur/noyau";
 import { genererProgramme } from "@/lib/moteur";
+import type { Programme } from "@/lib/moteur";
 import {
   JOURS, PROFIL_DEFAUT, type Blessure, type ContrainteAlimentaire,
   type Equipement, type Jour, type Profil,
 } from "@/lib/moteur/types";
 import { enregistrerFiche, listerFiches } from "@/lib/stockage";
 import { majReglages } from "@/lib/suivi";
+import { useToast } from "@/components/toast";
+import { Felicitations } from "@/components/felicitations";
 
 const ETAPES = ["Vous", "Objectif", "Matériel", "Agenda", "Cuisine"] as const;
 
@@ -90,11 +93,13 @@ const OPTIONS_CONTRAINTES: { valeur: ContrainteAlimentaire; libelle: string }[] 
 
 export default function PageProfil() {
   const router = useRouter();
+  const { toast } = useToast();
   const [etape, setEtape] = useState(0);
   const [p, setP] = useState<Profil>(PROFIL_DEFAUT);
   const [ficheId, setFicheId] = useState<string | undefined>();
   const [erreurs, setErreurs] = useState<Record<string, string>>({});
   const [envoi, setEnvoi] = useState(false);
+  const [termine, setTermine] = useState<Programme | null>(null);
 
   // Pré-remplissage si un profil existe déjà
   useEffect(() => {
@@ -159,11 +164,30 @@ export default function PageProfil() {
       return;
     }
     setEnvoi(true);
-    const fiche = await enregistrerFiche(p, ficheId);
-    majReglages({ nomUtilisateur: p.nom || "Client" });
-    setFicheId(fiche.id);
-    router.push("/");
+    try {
+      const fiche = await enregistrerFiche(p, ficheId);
+      majReglages({ nomUtilisateur: p.nom || "Client" });
+      const prog = genererProgramme(p);
+      setFicheId(fiche.id);
+      setTermine(prog);
+      setEnvoi(false);
+    } catch {
+      setEnvoi(false);
+      toast("Programme enregistré, génération à recharger", "info");
+      router.push("/");
+    }
   };
+
+  if (termine) {
+    return (
+      <Felicitations
+        programme={termine}
+        nom={p.nom || "Client"}
+        onContinuer={() => router.push("/")}
+        onRetour={() => setTermine(null)}
+      />
+    );
+  }
 
   return (
     <div className="space-y-4 sm:space-y-5">
