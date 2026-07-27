@@ -11,12 +11,53 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
+import { Moon } from "lucide-react";
 import { Bouton, Carte, Encart, GrandChiffre, Pastille, Squelette, Vide, cx } from "@/components/ui";
-import { useApp } from "@/lib/useApp";
+import { jourSemaineCourant, useApp } from "@/lib/useApp";
 import { cap } from "@/lib/moteur/noyau";
 import { JOURS, type Jour, type Seance } from "@/lib/moteur/types";
 import { deplacerSeance, lirePlanning, reinitialiserPlanning } from "@/lib/suivi";
 import { useVersionStockage } from "@/lib/store";
+
+/**
+ * Couleurs de bordure du calendrier.
+ *
+ * `globals.css` pose `* { border-color: var(--border) }` **hors de toute
+ * couche**. Or, dans la cascade CSS, une déclaration hors couche l'emporte sur
+ * toutes les couches nommées : les utilitaires Tailwind `border-[var(--x)]`,
+ * qui vivent dans `@layer utilities`, sont donc systématiquement écrasés.
+ * Les épaisseurs et les styles de trait (`border-l-4`, `border-dashed`) ne
+ * sont pas concernés — seule la couleur l'est. On la passe donc en style
+ * inline, qui prime sur les règles d'auteur, quelle que soit leur couche.
+ */
+function bordureJour(effort: boolean, cible: boolean): React.CSSProperties {
+  return {
+    // Contour complet de la cible de dépôt, puis barre latérale de l'état :
+    // la longhand `borderLeftColor` est appliquée après, elle l'emporte.
+    ...(cible ? { borderColor: "var(--accent)" } : null),
+    borderLeftColor: effort ? "var(--accent)" : "var(--trame-repos)",
+  };
+}
+
+/**
+ * Rendu de l'intensité, lu **tel quel** sur `Seance.intensite` (seul champ du
+ * moteur qui la porte : deux valeurs, `moderee` et `elevee`). Aucun seuil, ni
+ * sur `dureeMin`, ni sur le nombre de blocs, n'est inventé ici : l'échelle
+ * affichée est exactement celle des données.
+ */
+const INTENSITE: Record<Seance["intensite"], { points: string; libelle: string }> = {
+  moderee: { points: "●", libelle: "modérée" },
+  elevee: { points: "●●", libelle: "élevée" },
+};
+
+/** Résumé vocalisé d'une ligne-jour, pour les lecteurs d'écran. */
+function etiquetteJour(jour: Jour, seances: Seance[], aujourdhui: boolean): string {
+  const tete = aujourdhui ? `${cap(jour)}, aujourd'hui` : cap(jour);
+  if (!seances.length) return `${tete}, jour de repos`;
+  const n = seances.length;
+  return `${tete}, jour d'effort, ${n} séance${n > 1 ? "s" : ""} : `
+    + seances.map((s) => s.nom).join(", ");
+}
 
 /**
  * Découpe le cycle en phases : chaque bloc d'accumulation suivi de sa semaine
@@ -49,6 +90,8 @@ export default function PageProgramme() {
 
   const vue = semaineVue ?? semaine;
   const donneesSemaine = programme?.cycle[vue - 1] ?? programme?.semaineType;
+  // Jour courant fourni par le moteur : aucune date n'est recalculée ici.
+  const jourCourant = jourSemaineCourant();
 
   /**
    * Séances de la semaine, réparties par jour en tenant compte des
@@ -293,26 +336,73 @@ export default function PageProgramme() {
         </div>
 
         {/* Jours */}
-        <div className="space-y-2">
+        <ul className="space-y-2">
           {JOURS.map((j) => {
             const seances = parJour.get(j) ?? [];
+            const effort = seances.length > 0;
+            const estAujourdhui = vue === semaine && j === jourCourant;
             const cibleActive = modeEdition && seanceDeplacee !== null;
+            // Deux valeurs seulement dans le moteur : on affiche celle qui
+            // domine la journée, sans jamais la recalculer.
+            const intensite = seances.some((s) => s.intensite === "elevee")
+              ? INTENSITE.elevee
+              : INTENSITE.moderee;
             return (
-              <div
+              <li
                 key={j}
+                aria-label={etiquetteJour(j, seances, estAujourdhui)}
+                style={{
+                  ...bordureJour(effort, cibleActive),
+                  // La trame du repos reste pointillée même quand la ligne est
+                  // une cible de dépôt : distinction non chromatique préservée.
+                  borderLeftStyle: effort ? "solid" : "dashed",
+                }}
                 className={cx(
-                  "rounded-2xl transition",
-                  seances.length ? "bg-[var(--surface-2)]" : "bg-transparent",
-                  cibleActive && "border-2 border-dashed border-[var(--accent)] bg-[var(--accent-soft)]",
+                  "rounded-2xl border-l-4 transition",
+                  // Un seul fond à la fois : `bg-[…]/40` est émis après
+                  // `bg-[var(--accent-soft)]` et l'emporterait sinon.
+                  cibleActive
+                    ? "border-2 border-dashed bg-[var(--accent-soft)]"
+                    : effort
+                      ? "bg-[var(--accent-soft)]"
+                      : "bg-[var(--surface-2)]/40",
+                  estAujourdhui
+                    && "ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[var(--surface)]",
                 )}
               >
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
-                  <span className="w-20 shrink-0 text-sm font-medium">{cap(j)}</span>
+                  {/* Glyphe d'état, à gauche du nom du jour : pastille
+                      d'intensité pour l'effort, lune pour le repos. Purement
+                      décoratif — l'aria-label de la ligne porte déjà le sens,
+                      et le mot d'intensité reste affiché à côté des séances. */}
+                  <span
+                    aria-hidden
+                    className={cx(
+                      "flex w-6 shrink-0 justify-center text-[0.7rem] tracking-tighter",
+                      effort ? "text-[var(--accent)]" : "text-muted",
+                    )}
+                  >
+                    {effort ? intensite.points : <Moon size={14} className="shrink-0" />}
+                  </span>
+
+                  <span
+                    className={cx(
+                      "w-20 shrink-0 text-sm",
+                      estAujourdhui ? "font-bold" : "font-medium",
+                    )}
+                  >
+                    {cap(j)}
+                  </span>
+
+                  {estAujourdhui && <Pastille ton="accent">Aujourd&apos;hui</Pastille>}
 
                   {seances.length === 0 ? (
-                    <span className="text-sm text-faint">Repos</span>
+                    <span className="text-sm text-muted">Repos — récupération</span>
                   ) : (
-                    <div className="flex min-w-0 flex-1 flex-wrap gap-2">
+                    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                      {/* Intensité : lue sur `Seance.intensite`, jamais déduite. */}
+                      <span className="shrink-0 text-xs text-muted">{intensite.libelle}</span>
+
                       {seances.map((s, i) => {
                         const selectionnee = seanceDeplacee === s.nom;
                         return (
@@ -351,15 +441,45 @@ export default function PageProgramme() {
                   <button
                     type="button"
                     onClick={() => poser(j)}
-                    className="w-full rounded-b-2xl border-t border-dashed border-[var(--accent)] px-4 py-2 text-xs font-medium text-[var(--accent)] transition hover:bg-[var(--accent-soft)]"
+                    style={{ borderTopColor: "var(--accent)" }}
+                    className="w-full rounded-b-2xl border-t border-dashed px-4 py-2 text-xs font-medium text-ink transition hover:bg-[var(--accent-soft)]"
                   >
                     Déplacer ici
                   </button>
                 )}
-              </div>
+              </li>
             );
           })}
-        </div>
+        </ul>
+
+        {/* Légende : chaque état se lit aussi sans couleur — trait plein,
+            trait pointillé, anneau. */}
+        <ul className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted">
+          <li className="flex items-center gap-1.5">
+            <span
+              aria-hidden
+              style={{ backgroundColor: "var(--accent)" }}
+              className="h-3 w-3 shrink-0 rounded-[3px]"
+            />
+            Effort
+          </li>
+          <li className="flex items-center gap-1.5">
+            <span
+              aria-hidden
+              style={{ borderColor: "var(--trame-repos)" }}
+              className="h-3 w-3 shrink-0 rounded-[3px] border-2 border-dashed"
+            />
+            Repos
+          </li>
+          <li className="flex items-center gap-1.5">
+            <span
+              aria-hidden
+              style={{ borderColor: "var(--accent)" }}
+              className="h-3 w-3 shrink-0 rounded-full border-2"
+            />
+            Aujourd&apos;hui
+          </li>
+        </ul>
 
         <AnimatePresence>
           {aDesDeplacements && (

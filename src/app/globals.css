@@ -90,6 +90,14 @@
   --border-strong: rgb(255 255 255 / 0.75);
   --filet: rgb(24 33 38 / 0.08);
 
+  /* Trame des états « en creux » (jour de repos du calendrier).
+     `--border-strong` est un blanc à 75 % : sur une surface claire il tombe à
+     1,1:1, donc invisible en niveaux de gris. Ce jeton lui donne la densité
+     nécessaire pour qu'une bordure en pointillés reste un repère non
+     chromatique. Vérifié ≥ 3:1 sur les trois fonds du calendrier
+     (carte 4,05:1 · repos 4,14:1 · effort 3,41:1). */
+  --trame-repos: #6d757b;
+
   /* Accent interactif : corail assombri, lisible en blanc dessus (AA). */
   --accent: #b85b45;
   --accent-vif: #d77769;
@@ -170,6 +178,10 @@
   --border: rgb(255 255 255 / 0.12);
   --border-strong: rgb(255 255 255 / 0.24);
   --filet: rgb(255 255 255 / 0.10);
+
+  /* Même rôle en sombre : la trame pointillée du repos reste lisible sans
+     dépendre de la teinte (carte 4,82:1 · repos 4,48:1 · effort 3,54:1). */
+  --trame-repos: #98a1a7;
 
   --accent: #f1a08d;
   --accent-vif: #e98e79;
