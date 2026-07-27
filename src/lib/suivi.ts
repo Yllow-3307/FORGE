@@ -74,6 +74,10 @@ const CLE_JOURNAL = "forge:journal";
 const CLE_PLANNING = "forge:planning";
 const CLE_SKILLS = "forge:skills";
 const CLE_REGLAGES = "forge:reglages";
+const CLE_RECENTS = "forge:aliments-recents";
+
+/** Nombre d'aliments récents conservés : au-delà, la liste cesse d'être un raccourci. */
+const MAX_RECENTS = 8;
 
 export const WIDGETS_DEFAUT: Widget[] = [
   { id: "w1", type: "lancer_seance", taille: "rectangle" },
@@ -316,6 +320,26 @@ export function suggestionsComplement(
   return suggestions;
 }
 
+/* -------------------------------------------------------- Aliments récents */
+
+/**
+ * Identifiants des derniers aliments ajoutés au journal, du plus récent au
+ * plus ancien. Sert de raccourci de saisie : au bout de quelques jours, on
+ * remange largement les mêmes choses.
+ */
+export function lireAlimentsRecents(): string[] {
+  const stocke = lire<unknown>(CLE_RECENTS, []);
+  if (!Array.isArray(stocke)) return [];
+  return stocke.filter((x): x is string => typeof x === "string").slice(0, MAX_RECENTS);
+}
+
+/** Place l'aliment en tête de la liste des récents, sans doublon. */
+export function noterAlimentRecent(id: string): void {
+  if (!id) return;
+  const suivants = [id, ...lireAlimentsRecents().filter((x) => x !== id)].slice(0, MAX_RECENTS);
+  ecrire(CLE_RECENTS, suivants);
+}
+
 /* ------------------------------------------------------------ Série (streak) */
 
 /**
@@ -444,7 +468,7 @@ export function majReglages(maj: Partial<Reglages>): Reglages {
 
 export function effacerToutesDonnees(): void {
   if (typeof window === "undefined") return;
-  [CLE_JOURNAL, CLE_SKILLS, CLE_REGLAGES, CLE_PLANNING,
+  [CLE_JOURNAL, CLE_SKILLS, CLE_REGLAGES, CLE_PLANNING, CLE_RECENTS,
     "forge:fiches", "forge:seances", "forge:poids"]
     .forEach((c) => localStorage.removeItem(c));
   window.dispatchEvent(new CustomEvent("forge:maj", { detail: "tout" }));
