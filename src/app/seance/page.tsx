@@ -10,13 +10,14 @@
  * l'effort, on ne doit avoir qu'une information à lire et un bouton à toucher.
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bouton, Carte, Pastille, Squelette, Vide, cx } from "@/components/ui";
 import { CercleMinuteur, useMinuteur } from "@/components/minuteur";
 import { useApp } from "@/lib/useApp";
-import { majJour, aujourdhui, majReglages } from "@/lib/suivi";
+import { majJour, aujourdhui, majReglages, lireCharges, type EntreeCharge } from "@/lib/suivi";
+import { SaisieCharge } from "@/components/saisie-charge";
 import { BIBLIOTHEQUE } from "@/lib/moteur/exercices";
 import { IllustrationExercice } from "@/components/illustration-exercice";
 import { aIllustration } from "@/lib/donnees/illustrations";
@@ -39,6 +40,7 @@ export default function PageSeance() {
   const [ressenti, setRessenti] = useState("");
   const [energie, setEnergie] = useState<1 | 2 | 3 | 4 | 5>(3);
   const [enregistre, setEnregistre] = useState(false);
+  const [chargesDuJour, setChargesDuJour] = useState<EntreeCharge[]>([]);
 
   const seance = seancesDuJour[0] ?? null;
 
@@ -157,6 +159,24 @@ export default function PageSeance() {
     setEnregistre(true);
     rafraichir();
   };
+
+  useEffect(() => {
+    const charger = () => {
+      try {
+        const toutes = lireCharges().filter((e) => e.date === aujourdhui());
+        setChargesDuJour(toutes);
+      } catch {
+        setChargesDuJour([]);
+      }
+    };
+    charger();
+    const handler = (ev: Event) => {
+      const detail = (ev as CustomEvent).detail as string | undefined;
+      if (!detail || detail === "forge:charges" || detail === "tout") charger();
+    };
+    window.addEventListener("forge:maj", handler as EventListener);
+    return () => window.removeEventListener("forge:maj", handler as EventListener);
+  }, [phase]);
 
   /* ----------------------------------------------------------------- vues */
 
@@ -500,6 +520,10 @@ export default function PageSeance() {
               )}
             </Carte>
 
+            {!enRepos && blocCourant.unite === "reps" && (
+              <SaisieCharge exercice={blocCourant.nom} />
+            )}
+
             <div className="flex justify-between px-1">
               <button
                 onClick={() => { setIndexBloc((i) => Math.max(0, i - 1)); setEnRepos(false); }}
@@ -619,6 +643,22 @@ export default function PageSeance() {
                   ))}
                 </div>
               </div>
+
+              {chargesDuJour.length > 0 && (
+                <div className="mt-4 rounded-2xl bg-[var(--surface-2)] p-4">
+                  <p className="etiquette">Charges du jour</p>
+                  <ul className="mt-2 space-y-1.5">
+                    {chargesDuJour.map((c) => (
+                      <li key={c.id} className="flex items-baseline justify-between gap-3 text-sm">
+                        <span className="min-w-0 flex-1 truncate">{c.exercice}</span>
+                        <span className="shrink-0 tnum font-medium">
+                          {new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(c.charge)} kg × {c.reps}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               <textarea
                 value={ressenti}

@@ -75,6 +75,7 @@ const CLE_PLANNING = "forge:planning";
 const CLE_SKILLS = "forge:skills";
 const CLE_REGLAGES = "forge:reglages";
 const CLE_RECENTS = "forge:aliments-recents";
+const CLE_CHARGES = "forge:charges";
 
 /** Nombre d'aliments récents conservés : au-delà, la liste cesse d'être un raccourci. */
 const MAX_RECENTS = 8;
@@ -440,6 +441,80 @@ export function reculerEtape(skillId: string): void {
   majSkill(skillId, { etape: Math.max(0, p.etape - 1) });
 }
 
+/* --------------------------------------------------------------- Charges */
+
+export interface EntreeCharge {
+  id: string;
+  date: string;        // AAAA-MM-JJ, via aujourdhui()
+  exercice: string;    // nom EXACT de l'exercice, tel qu'affiché
+  charge: number;      // en kg ; 0 = poids du corps
+  reps: number;        // répétitions effectuées sur la meilleure série
+  series?: number;
+  note?: string;
+}
+
+export function lireCharges(): EntreeCharge[] {
+  return lire<EntreeCharge[]>(CLE_CHARGES, []);
+}
+
+export function chargesExercice(exercice: string): EntreeCharge[] {
+  const toutes = lireCharges();
+  // On inverse d'abord pour que, à date égale, la plus récemment ajoutée apparaisse en premier (tri stable)
+  return toutes
+    .filter((e) => e.exercice === exercice)
+    .reverse()
+    .sort((a, b) => b.date.localeCompare(a.date));
+}
+
+export function derniereCharge(exercice: string): EntreeCharge | null {
+  const liste = chargesExercice(exercice);
+  return liste[0] ?? null;
+}
+
+export function enregistrerCharge(e: Omit<EntreeCharge, "id">): EntreeCharge {
+  const entree: EntreeCharge = { ...e, id: id() };
+  const toutes = lireCharges();
+  toutes.push(entree);
+  ecrire(CLE_CHARGES, toutes);
+  return entree;
+}
+
+export function supprimerCharge(idCharge: string): void {
+  const toutes = lireCharges().filter((e) => e.id !== idCharge);
+  ecrire(CLE_CHARGES, toutes);
+}
+
+/** Volume = charge × reps × series (series ?? 1). Sert de comparateur entre séances. */
+export function volumeSeance(e: EntreeCharge): number {
+  return e.charge * e.reps * (e.series ?? 1);
+}
+
+/** Compare la dernière entrée à la précédente. */
+export function tendanceCharge(exercice: string): {
+  sens: "hausse" | "stable" | "baisse" | "inconnu";
+  deltaKg: number;
+  deltaPct: number;
+} {
+  const liste = chargesExercice(exercice);
+  if (liste.length < 2) {
+    return { sens: "inconnu", deltaKg: 0, deltaPct: 0 };
+  }
+  const derniere = liste[0];
+  const precedente = liste[1];
+  const deltaKg = derniere.charge - precedente.charge;
+  const deltaPct = precedente.charge === 0
+    ? derniere.charge === 0 ? 0 : 100
+    : (deltaKg / precedente.charge) * 100;
+
+  const EPS = 0.001;
+  let sens: "hausse" | "stable" | "baisse" | "inconnu";
+  if (Math.abs(deltaKg) < EPS) sens = "stable";
+  else if (deltaKg > 0) sens = "hausse";
+  else sens = "baisse";
+
+  return { sens, deltaKg, deltaPct };
+}
+
 /* --------------------------------------------------------------- Réglages */
 
 export function lireReglages(): Reglages {
@@ -468,7 +543,7 @@ export function majReglages(maj: Partial<Reglages>): Reglages {
 
 export function effacerToutesDonnees(): void {
   if (typeof window === "undefined") return;
-  [CLE_JOURNAL, CLE_SKILLS, CLE_REGLAGES, CLE_PLANNING, CLE_RECENTS,
+  [CLE_JOURNAL, CLE_SKILLS, CLE_REGLAGES, CLE_PLANNING, CLE_RECENTS, CLE_CHARGES,
     "forge:fiches", "forge:seances", "forge:poids"]
     .forEach((c) => localStorage.removeItem(c));
   window.dispatchEvent(new CustomEvent("forge:maj", { detail: "tout" }));
@@ -482,6 +557,7 @@ export function exporterHistorique(): string {
       journal: lireJournal(),
       skills: lireSkills(),
       reglages: lireReglages(),
+      charges: lireCharges(),
     },
     null, 2,
   );
