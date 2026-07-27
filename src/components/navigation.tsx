@@ -46,7 +46,6 @@ const LIENS_PRINCIPAUX: readonly LienNavigation[] = [
 const LIENS_SECONDAIRES: readonly LienNavigation[] = [
   { href: "/mesures", libelle: "Mesures", icone: Scale },
   { href: "/parametres", libelle: "Paramètres", icone: Settings },
-  { href: "/compte", libelle: "Compte", icone: User },
 ] as const;
 
 // La barre de bureau affiche les 5 principaux + Mesures et Paramètres ;
@@ -126,20 +125,20 @@ export function Navigation() {
           </div>
 
           <Link
-            href="/compte"
-            aria-label="Mon compte"
-            title="Mon compte"
+            href="/parametres#compte"
+            aria-label="Compte et réglages"
+            title="Compte et réglages"
             className={cx(
               "grid h-10 w-10 shrink-0 place-items-center rounded-full text-base",
               "transition-[background-color,box-shadow,color] duration-200",
-              estActif("/compte")
+              estActif("/parametres")
                 ? "bg-[image:var(--accent-degrade)] shadow-soft text-[var(--accent-contrast)]"
                 : "bg-[var(--surface-2)] hover:bg-[var(--accent-soft)] text-muted hover:text-ink",
             )}
           >
             <User
               size={18}
-              strokeWidth={estActif("/compte") ? 2.25 : 1.75}
+              strokeWidth={estActif("/parametres") ? 2.25 : 1.75}
               aria-hidden
               className="shrink-0"
             />
