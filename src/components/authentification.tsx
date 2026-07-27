@@ -7,7 +7,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Bouton, Carte, Champ, Encart, Saisie, cx } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { LogoForge } from "@/components/logo";
-import { stockageDistant } from "@/lib/stockage";
 
 type Mode = "connexion" | "inscription" | "oubli";
 

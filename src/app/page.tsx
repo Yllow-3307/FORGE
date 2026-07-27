@@ -304,7 +304,7 @@ export default function Accueil() {
             />
           </Carte>
         ) : (
-          <div className="grid auto-rows-[minmax(132px,auto)] grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="grid auto-rows-[minmax(132px,auto)] grid-cols-2 gap-3 md:auto-rows-[minmax(148px,auto)] md:grid-cols-3 lg:grid-cols-4">
             <AnimatePresence mode="popLayout">
               {widgets.map((w, i) => (
                 <motion.div
@@ -400,7 +400,7 @@ export default function Accueil() {
       </AnimatePresence>
 
       {/* --------------------------- Accès rapides -------------------------- */}
-      <motion.section variants={enfantCascade} className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <motion.section variants={enfantCascade} className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {[
           { href: "/nutrition", emoji: "🥗", nom: "Nutrition" },
           { href: "/programme", emoji: "📆", nom: "Programme" },

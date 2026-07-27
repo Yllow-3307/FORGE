@@ -524,8 +524,8 @@ export function SqueletteGrille({ lignes = 4 }: { lignes?: number }) {
       {/* Grande carte éditoriale */}
       <Squelette className="h-44 rounded-xl3 sm:h-52" />
       {/* Grille widgets */}
-      <div className="grid auto-rows-[minmax(132px,auto)] grid-cols-2 gap-3 sm:grid-cols-4">
-        <Squelette className="col-span-2 h-full sm:col-span-4" />
+      <div className="grid auto-rows-[minmax(132px,auto)] grid-cols-2 gap-3 md:auto-rows-[minmax(148px,auto)] md:grid-cols-3 lg:grid-cols-4">
+        <Squelette className="col-span-2 h-full md:col-span-3 lg:col-span-4" />
         {Array.from({ length: lignes }).map((_, i) => (
           <Squelette
             key={i}
