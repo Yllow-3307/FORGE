@@ -18,6 +18,8 @@ import { CercleMinuteur, useMinuteur } from "@/components/minuteur";
 import { useApp } from "@/lib/useApp";
 import { majJour, aujourdhui, majReglages } from "@/lib/suivi";
 import { BIBLIOTHEQUE } from "@/lib/moteur/exercices";
+import { IllustrationExercice } from "@/components/illustration-exercice";
+import { aIllustration } from "@/lib/donnees/illustrations";
 import {
   consignesSeance, echauffementPour, etirementsPour, musclesSollicites,
 } from "@/lib/donnees/seance";
@@ -31,6 +33,9 @@ export default function PageSeance() {
   const [indexBloc, setIndexBloc] = useState(0);
   const [seriesFaites, setSeriesFaites] = useState<Record<number, number>>({});
   const [enRepos, setEnRepos] = useState(false);
+  // Index du bloc dont le schéma est déplié : mémoriser l'index plutôt qu'un
+  // booléen referme automatiquement le schéma au changement d'exercice.
+  const [schemaOuvert, setSchemaOuvert] = useState<number | null>(null);
   const [ressenti, setRessenti] = useState("");
   const [energie, setEnergie] = useState<1 | 2 | 3 | 4 | 5>(3);
   const [enregistre, setEnregistre] = useState(false);
@@ -423,8 +428,42 @@ export default function PageSeance() {
                   {blocCourant.tempo && (
                     <p className="mt-3 text-xs text-muted">Tempo {blocCourant.tempo}</p>
                   )}
+                  {/* La note de l'exercice reste affichée dans tous les cas :
+                      elle est le repli quand aucun schéma n'existe. */}
                   {blocCourant.note && (
                     <p className="mt-3 max-w-md text-sm text-muted text-pretty">{blocCourant.note}</p>
+                  )}
+
+                  {/* Schéma d'exécution : proposé uniquement si le mouvement en
+                      possède un, sinon aucun bouton n'apparaît. */}
+                  {aIllustration(blocCourant.nom) && (
+                    <div className="mt-3 w-full max-w-[320px]">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSchemaOuvert((i) => (i === indexBloc ? null : indexBloc))
+                        }
+                        aria-expanded={schemaOuvert === indexBloc}
+                        className="text-xs text-faint underline underline-offset-2 hover:text-muted"
+                      >
+                        {schemaOuvert === indexBloc
+                          ? "Masquer le mouvement"
+                          : "Voir le mouvement"}
+                      </button>
+
+                      <AnimatePresence initial={false}>
+                        {schemaOuvert === indexBloc && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden"
+                          >
+                            <IllustrationExercice nom={blocCourant.nom} className="mt-3" />
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
                   )}
 
                   {estChronometre ? (
