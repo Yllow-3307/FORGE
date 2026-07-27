@@ -18,6 +18,7 @@ import {
 } from "@/lib/donnees/skills";
 import {
   lireSkills, majSkill, progresSkill, reculerEtape, validerEtape,
+  lireCharges, tendanceCharge, type EntreeCharge,
 } from "@/lib/suivi";
 import { useVersionStockage } from "@/lib/store";
 
@@ -203,6 +204,148 @@ function CarteSkill({
   );
 }
 
+const fmtFr = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 });
+const fmtPctFr = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 });
+
+function pointsSparkline(valeurs: number[]): string {
+  const n = valeurs.length;
+  if (n === 0) return "";
+  if (n === 1) return `0,16 120,16`;
+  const min = Math.min(...valeurs);
+  const max = Math.max(...valeurs);
+  if (min === max) {
+    return valeurs
+      .map((_, i) => {
+        const x = (i / (n - 1)) * 120;
+        return `${x},16`;
+      })
+      .join(" ");
+  }
+  return valeurs
+    .map((v, i) => {
+      const x = (i / (n - 1)) * 120;
+      const norme = (v - min) / (max - min);
+      const y = 30 - norme * 28;
+      return `${x},${y}`;
+    })
+    .join(" ");
+}
+
+function SectionCharges({ version }: { version: number }) {
+  const groupes = useMemo(() => {
+    void version;
+    const toutes = lireCharges() as EntreeCharge[];
+    const parExo = new Map<string, EntreeCharge[]>();
+    for (const e of toutes) {
+      const list = parExo.get(e.exercice);
+      if (list) list.push(e);
+      else parExo.set(e.exercice, [e]);
+    }
+    const res: {
+      exercice: string;
+      entrees: EntreeCharge[];
+      derniere: EntreeCharge;
+      tendance: ReturnType<typeof tendanceCharge>;
+    }[] = [];
+    for (const [exo, list] of parExo) {
+      if (list.length < 2) continue;
+      const triee = [...list].sort((a, b) => b.date.localeCompare(a.date));
+      res.push({
+        exercice: exo,
+        entrees: triee,
+        derniere: triee[0],
+        tendance: tendanceCharge(exo),
+      });
+    }
+    res.sort((a, b) => b.derniere.date.localeCompare(a.derniere.date));
+    return res;
+  }, [version]);
+
+  if (groupes.length === 0) {
+    return (
+      <section className="space-y-3">
+        <h2 className="px-1 text-sm font-semibold uppercase tracking-wider text-faint">Charges</h2>
+        <Carte>
+          <Vide
+            icone="🏋️"
+            titre="Aucune charge enregistrée"
+            texte="Notez vos charges pendant la séance : FORGE suivra votre surcharge progressive."
+          />
+        </Carte>
+      </section>
+    );
+  }
+
+  return (
+    <section className="space-y-3">
+      <h2 className="px-1 text-sm font-semibold uppercase tracking-wider text-faint">Charges</h2>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {groupes.map((g) => {
+          // 8 dernières valeurs en ordre chronologique pour la sparkline
+          const huit = [...g.entrees]
+            .sort((a, b) => a.date.localeCompare(b.date))
+            .slice(-8)
+            .map((e) => e.charge);
+          const pts = pointsSparkline(huit);
+          const fleche =
+            g.tendance.sens === "hausse" ? (
+              <span style={{ color: "var(--accent)" }} aria-label="hausse">
+                ↑
+              </span>
+            ) : g.tendance.sens === "baisse" ? (
+              <span style={{ color: "var(--danger)" }} aria-label="baisse">
+                ↓
+              </span>
+            ) : g.tendance.sens === "stable" ? (
+              <span className="text-muted" aria-label="stable">
+                →
+              </span>
+            ) : null;
+
+          const deltaKg = g.tendance.deltaKg;
+          const deltaPct = g.tendance.deltaPct;
+          const deltaStr =
+            g.tendance.sens !== "inconnu"
+              ? `${deltaKg > 0 ? "+" : ""}${fmtFr.format(deltaKg)} kg (${deltaPct > 0 ? "+" : ""}${fmtPctFr.format(deltaPct)} %)`
+              : "";
+
+          return (
+            <Carte key={g.exercice} className="p-4 sm:p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold">{g.exercice}</p>
+                  <p className="mt-1 text-sm">
+                    <span className="tnum font-medium">{fmtFr.format(g.derniere.charge)} kg</span>
+                    <span className="text-muted"> × {g.derniere.reps}</span>
+                  </p>
+                </div>
+                <div className="shrink-0 text-right text-sm">
+                  <span className="inline-flex items-center gap-1">
+                    {fleche}
+                    <span className="text-xs text-muted">{deltaStr}</span>
+                  </span>
+                </div>
+              </div>
+              {huit.length >= 2 && (
+                <svg viewBox="0 0 120 32" className="mt-3 h-8 w-full" aria-hidden>
+                  <polyline
+                    points={pts}
+                    fill="none"
+                    stroke="var(--accent)"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              )}
+            </Carte>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 export default function PageProgres() {
   const { chargement, fiche, programme, rafraichir } = useApp();
   const [ouvert, setOuvert] = useState<string | null>(null);
@@ -351,6 +494,9 @@ export default function PageProgres() {
           </>
         )}
       </section>
+
+      {/* --------------------------- Charges ------------------------------ */}
+      <SectionCharges version={version} />
 
       {/* -------------------------- Recommandés --------------------------- */}
       {recommandes.length > 0 && fiche && (
