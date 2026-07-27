@@ -26,14 +26,14 @@ import { useStockageLocal } from "@/lib/store";
 import { useEffect, useState } from "react";
 
 /**
- * Formats de la grille (4 colonnes sur écran large, 2 sur mobile).
+ * Formats de la grille (4 colonnes sur grand écran, 3 sur tablette, 2 sur mobile).
  * Les hauteurs sont fixées en rangées plutôt qu'en `aspect-square` : sur deux
  * colonnes, un carré deviendrait démesurément haut et laisserait un grand vide.
  */
 export const CLASSES_TAILLE: Record<TailleWidget, string> = {
   petit: "col-span-1 row-span-1",
   grand: "col-span-2 row-span-1",
-  rectangle: "col-span-2 sm:col-span-4 row-span-1",
+  rectangle: "col-span-2 md:col-span-3 lg:col-span-4 row-span-1",
 };
 
 export const CATALOGUE_WIDGETS: {

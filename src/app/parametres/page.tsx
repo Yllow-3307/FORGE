@@ -360,7 +360,7 @@ export default function PageParametres() {
           </div>
           {confirmation === "compte" && (
             <div className="mt-4 space-y-3">
-              <Encart ton="danger" titre="Supprimer définitivement le compte ?">Le profil, le programme et l'intégralité de l'historique seront supprimés.</Encart>
+              <Encart ton="danger" titre="Supprimer définitivement le compte ?">Le profil, le programme et l&apos;intégralité de l&apos;historique seront supprimés.</Encart>
               <div className="flex gap-2">
                 <Bouton variante="danger" taille="sm" onClick={supprimerCompte}>Oui, supprimer mon compte</Bouton>
                 <Bouton variante="fantome" taille="sm" onClick={() => setConfirmation("aucune")}>Annuler</Bouton>

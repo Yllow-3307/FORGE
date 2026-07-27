@@ -96,7 +96,7 @@ export function Felicitations({
         {/* d) Grille des 4 Stats — uniquement champs existants sur Programme */}
         <motion.div
           variants={enfantCascade}
-          className="grid grid-cols-2 gap-3 sm:grid-cols-4"
+          className="grid grid-cols-2 gap-3 md:grid-cols-4"
         >
           <Stat
             label="Durée du cycle"
