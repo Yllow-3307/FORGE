@@ -7,16 +7,19 @@
  * puis des suggestions concrètes pour combler l'écart avec les cibles.
  */
 
-import { useMemo, useState } from "react";
+import { useCallback, useId, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bouton, Carte, Pastille, Saisie, Squelette, Vide, cx } from "@/components/ui";
 import { Anneau } from "@/components/widgets";
 import { Bouteille } from "@/components/bouteille";
+import { useToast } from "@/components/toast";
 import { useApp } from "@/lib/useApp";
+import { useStockageLocal } from "@/lib/store";
+import { rechercher, tranchesCorrespondance } from "@/lib/recherche";
 import {
-  ajouterEau, ajouterRepas, ajouterRepasManuel, aujourdhui, retirerRepas,
-  suggestionsComplement, type EntreeRepas,
+  ajouterEau, ajouterRepas, ajouterRepasManuel, aujourdhui, noterAlimentRecent,
+  retirerRepas, suggestionsComplement, type EntreeRepas,
 } from "@/lib/suivi";
 import {
   alimentParId, alimentsCompatibles, apports, CATEGORIES, type Aliment,
@@ -30,6 +33,54 @@ const REPAS: { id: EntreeRepas["repas"]; nom: string; emoji: string }[] = [
   { id: "collation", nom: "Collation", emoji: "🍏" },
 ];
 
+/** Nombre de résultats proposés sous le champ de recherche. */
+const MAX_RESULTATS = 20;
+/** Nombre de raccourcis « récemment utilisés ». */
+const MAX_RECENTS_AFFICHES = 6;
+
+/** Référence stable : un littéral `[]` en défaut relancerait des rendus. */
+const AUCUN_RECENT: string[] = [];
+
+/**
+ * Affiche un nom en mettant en évidence la portion qui répond à la requête.
+ *
+ * Le découpage passe par `tranchesCorrespondance`, qui raisonne en index du
+ * texte ORIGINAL : chercher « oeuf » surligne bien « Œuf » sans décaler la
+ * suite du nom, et « pates » surligne « Pâtes ».
+ */
+function TexteSurligne({ texte, requete }: { texte: string; requete: string }) {
+  const morceaux = useMemo(() => {
+    const tranches = tranchesCorrespondance(texte, requete);
+    if (!tranches.length) return null;
+
+    const sortie: { texte: string; surligne: boolean }[] = [];
+    let curseur = 0;
+    for (const { debut, fin } of tranches) {
+      if (debut > curseur) sortie.push({ texte: texte.slice(curseur, debut), surligne: false });
+      sortie.push({ texte: texte.slice(debut, fin), surligne: true });
+      curseur = fin;
+    }
+    if (curseur < texte.length) sortie.push({ texte: texte.slice(curseur), surligne: false });
+    return sortie;
+  }, [texte, requete]);
+
+  if (!morceaux) return <>{texte}</>;
+
+  return (
+    <>
+      {morceaux.map((m, i) =>
+        m.surligne ? (
+          <mark key={i} className="bg-[var(--accent-soft)] text-ink rounded px-0.5">
+            {m.texte}
+          </mark>
+        ) : (
+          <span key={i}>{m.texte}</span>
+        ),
+      )}
+    </>
+  );
+}
+
 export default function PageNutrition() {
   const {
     chargement, fiche, programme, jour, scores, totaux, cibleHydratation, rafraichir,
@@ -42,6 +93,10 @@ export default function PageNutrition() {
   const [grammes, setGrammes] = useState(100);
   const [modeManuel, setModeManuel] = useState(false);
   const [manuel, setManuel] = useState({ nom: "", kcal: 0, proteines: 0, glucides: 0, lipides: 0 });
+  const [indexBrut, setIndexActif] = useState(0);
+
+  const { toast } = useToast();
+  const idListe = useId();
 
   // Mémorisé : sans cela, un nouveau tableau à chaque rendu invaliderait
   // les useMemo qui en dépendent.
@@ -51,15 +106,63 @@ export default function PageNutrition() {
   );
 
   const catalogue = useMemo(() => {
+    // Les contraintes alimentaires passent EN PREMIER : c'est un filtre de
+    // sécurité, jamais un critère de score. Aucune requête ne doit pouvoir
+    // faire remonter un aliment incompatible.
     let liste = alimentsCompatibles(contraintes);
     if (categorie !== "toutes") liste = liste.filter((a) => a.categorie === categorie);
-    if (recherche.trim()) {
-      const q = recherche.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
-      liste = liste.filter((a) =>
-        a.nom.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").includes(q));
-    }
-    return liste.slice(0, 40);
+    return rechercher(liste, recherche, (a) => a.nom, MAX_RESULTATS);
   }, [contraintes, categorie, recherche]);
+
+  // Aliments récents : relus depuis le stockage, donc mis à jour tout seuls
+  // après chaque ajout (l'écriture émet « forge:maj »).
+  const idsRecents = useStockageLocal<string[]>("forge:aliments-recents", AUCUN_RECENT);
+  const recents = useMemo(() => {
+    const compatibles = new Set(alimentsCompatibles(contraintes).map((a) => a.id));
+    return idsRecents
+      .filter((id) => compatibles.has(id))   // une contrainte ajoutée depuis purge la liste
+      .map((id) => alimentParId(id))
+      .filter((a): a is Aliment => Boolean(a))
+      .slice(0, MAX_RECENTS_AFFICHES);
+  }, [idsRecents, contraintes]);
+
+  // L'index est borné au rendu plutôt que remis à zéro dans un effet : la
+  // liste rétrécit à chaque frappe, et un effet provoquerait un rendu
+  // supplémentaire avec un descendant actif inexistant entre-temps.
+  const indexActif = catalogue.length ? Math.min(indexBrut, catalogue.length - 1) : 0;
+
+  const choisir = useCallback((a: Aliment) => {
+    setSelection(a);
+    setGrammes(a.portion);
+  }, []);
+
+  const surTouche = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      if (!catalogue.length) return;
+      e.preventDefault();
+      const pas = e.key === "ArrowDown" ? 1 : -1;
+      const suivant = (indexActif + pas + catalogue.length) % catalogue.length;
+      setIndexActif(suivant);
+      document
+        .getElementById(`${idListe}-option-${suivant}`)
+        ?.scrollIntoView({ block: "nearest" });
+    } else if (e.key === "Enter") {
+      const actif = catalogue[indexActif];
+      if (!actif) return;
+      e.preventDefault();
+      choisir(actif);
+    } else if (e.key === "Escape") {
+      if (!recherche) return;
+      e.preventDefault();
+      setRecherche("");
+    }
+  };
+
+  /** Bascule vers la saisie manuelle en reprenant ce qui a déjà été tapé. */
+  const passerEnManuel = (nom: string) => {
+    setManuel((m) => ({ ...m, nom }));
+    setModeManuel(true);
+  };
 
   const suggestions = useMemo(() => {
     if (!programme) return [];
@@ -117,11 +220,16 @@ export default function PageNutrition() {
   const valider = () => {
     if (modeManuel) {
       if (!manuel.nom.trim()) return;
-      ajouterRepasManuel(aujourdhui(), manuel.nom, manuel, ajout!);
+      const nom = manuel.nom.trim();
+      ajouterRepasManuel(aujourdhui(), nom, manuel, ajout!);
       setManuel({ nom: "", kcal: 0, proteines: 0, glucides: 0, lipides: 0 });
+      toast(`${nom} ajouté`, "succes");
     } else {
       if (!selection) return;
       ajouterRepas(aujourdhui(), selection.id, grammes, ajout!);
+      // Mémorisé pour la ligne « Récemment utilisés » du prochain repas.
+      noterAlimentRecent(selection.id);
+      toast(`${selection.nom} ajouté`, "succes");
       setSelection(null);
       setGrammes(100);
     }
@@ -374,11 +482,27 @@ export default function PageNutrition() {
                           <Saisie
                             placeholder="Rechercher un aliment…"
                             value={recherche}
-                            onChange={(e) => setRecherche(e.target.value)}
+                            onChange={(e) => { setRecherche(e.target.value); setIndexActif(0); }}
+                            onKeyDown={surTouche}
+                            role="combobox"
+                            aria-expanded={catalogue.length > 0}
+                            aria-controls={idListe}
+                            aria-activedescendant={
+                              catalogue.length ? `${idListe}-option-${indexActif}` : undefined
+                            }
+                            aria-autocomplete="list"
+                            aria-label="Rechercher un aliment"
                           />
+
+                          <p className="sr-only" aria-live="polite">
+                            {catalogue.length === 0
+                              ? "Aucun résultat"
+                              : `${catalogue.length} résultat${catalogue.length > 1 ? "s" : ""}`}
+                          </p>
+
                           <div className="flex flex-wrap gap-1.5">
                             <button
-                              onClick={() => setCategorie("toutes")}
+                              onClick={() => { setCategorie("toutes"); setIndexActif(0); }}
                               className={cx(
                                 "min-h-8 rounded-pill px-3 py-1.5 text-[0.7rem] transition-colors duration-200",
                                 categorie === "toutes"
@@ -391,7 +515,7 @@ export default function PageNutrition() {
                             {CATEGORIES.map((c) => (
                               <button
                                 key={c.id}
-                                onClick={() => setCategorie(c.id)}
+                                onClick={() => { setCategorie(c.id); setIndexActif(0); }}
                                 className={cx(
                                   "min-h-8 rounded-pill px-3 py-1.5 text-[0.7rem] transition-colors duration-200",
                                   categorie === c.id
@@ -403,25 +527,80 @@ export default function PageNutrition() {
                               </button>
                             ))}
                           </div>
-                          <div className="max-h-64 space-y-1 overflow-y-auto pr-1">
-                            {catalogue.map((a) => (
-                              <button
-                                key={a.id}
-                                onClick={() => { setSelection(a); setGrammes(a.portion); }}
-                                className="flex min-h-11 w-full items-center justify-between gap-3 rounded-2xl bg-[var(--surface-2)] px-3.5 py-2.5 text-left text-sm transition-colors duration-200 hover:bg-[var(--accent-soft)]"
-                              >
-                                <span className="min-w-0 flex-1 truncate">{a.nom}</span>
-                                <span className="shrink-0 text-xs tnum text-muted">
-                                  {a.kcal} kcal · P {a.proteines}
-                                </span>
-                              </button>
-                            ))}
-                            {catalogue.length === 0 && (
-                              <p className="py-4 text-center text-sm text-muted">
-                                Aucun aliment trouvé. Utilisez la saisie manuelle.
+                          {/* Raccourcis : on remange largement les mêmes choses. */}
+                          {!recherche.trim() && recents.length > 0 && (
+                            <div>
+                              <p className="mb-1.5 text-[0.65rem] text-faint">
+                                Récemment utilisés
                               </p>
-                            )}
-                          </div>
+                              <div className="flex flex-wrap gap-1.5">
+                                {recents.map((a) => (
+                                  <button
+                                    key={a.id}
+                                    onClick={() => choisir(a)}
+                                    className="rounded-pill transition-transform duration-200 active:scale-95"
+                                  >
+                                    <Pastille ton="accent">{a.nom}</Pastille>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <ul
+                            id={idListe}
+                            role="listbox"
+                            aria-label="Résultats de recherche"
+                            className="max-h-64 space-y-1 overflow-y-auto pr-1"
+                          >
+                            {catalogue.map((a, i) => (
+                              <li key={a.id}>
+                                <button
+                                  id={`${idListe}-option-${i}`}
+                                  role="option"
+                                  aria-selected={i === indexActif}
+                                  onClick={() => choisir(a)}
+                                  onPointerMove={() => setIndexActif(i)}
+                                  className={cx(
+                                    "flex min-h-11 w-full items-center justify-between gap-3 rounded-2xl px-3.5 py-2.5 text-left text-sm transition-colors duration-200",
+                                    i === indexActif
+                                      ? "bg-[var(--accent-soft)]"
+                                      : "bg-[var(--surface-2)] hover:bg-[var(--accent-soft)]",
+                                  )}
+                                >
+                                  <span className="min-w-0 flex-1 truncate">
+                                    <TexteSurligne texte={a.nom} requete={recherche} />
+                                  </span>
+                                  <span className="shrink-0 text-xs tnum text-muted">
+                                    {a.kcal} kcal · P {a.proteines}
+                                  </span>
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+
+                          {catalogue.length === 0 && (
+                            recherche.trim() ? (
+                              <div className="space-y-2.5 py-2 text-center">
+                                <p className="text-sm text-muted text-pretty">
+                                  Aucun aliment ne correspond à «&nbsp;{recherche.trim()}&nbsp;»
+                                </p>
+                                <Bouton
+                                  variante="doux"
+                                  taille="sm"
+                                  onClick={() => passerEnManuel(recherche.trim())}
+                                >
+                                  Ajouter «&nbsp;{recherche.trim()}&nbsp;» manuellement
+                                </Bouton>
+                              </div>
+                            ) : (
+                              // Catégorie vidée par les contraintes alimentaires :
+                              // il n'y a rien à chercher, seulement à saisir.
+                              <p className="py-4 text-center text-sm text-muted">
+                                Aucun aliment dans cette catégorie.
+                              </p>
+                            )
+                          )}
                         </div>
                       )}
                     </div>
