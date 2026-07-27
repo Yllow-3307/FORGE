@@ -20,6 +20,7 @@ import { Bouteille } from "./bouteille";
 import { useApp } from "@/lib/useApp";
 import { libelleSeance } from "@/lib/useApp";
 import { ajouterEau, type JournalJour, type TailleWidget, type TypeWidget } from "@/lib/suivi";
+import { useToast } from "@/components/toast";
 import { listerPoids, type MesurePoids } from "@/lib/stockage";
 import { useStockageLocal } from "@/lib/store";
 import { useEffect, useState } from "react";
@@ -152,12 +153,14 @@ function WidgetLancerSeance({ taille }: { taille: TailleWidget }) {
 
 function WidgetHydratation({ taille }: { taille: TailleWidget }) {
   const { jour, cibleHydratation, scores, rafraichir } = useApp();
+  const { toast } = useToast();
   const litres = (jour.hydratationMl / 1000).toFixed(1);
   const cible = (cibleHydratation / 1000).toFixed(1);
 
   const boire = (ml: number) => {
     ajouterEau(jour.date, ml);
     rafraichir();
+    toast("Verre ajouté", "succes");
   };
 
   if (taille === "petit") {

@@ -11,6 +11,7 @@
 
 import { createContext, useCallback, useContext, useSyncExternalStore } from "react";
 import { motion } from "framer-motion";
+import { useToast } from "@/components/toast";
 
 type Theme = "light" | "dark";
 
@@ -75,8 +76,14 @@ export const useTheme = () => useContext(ThemeContext);
 /* ------------------------------------------------------------ interrupteur */
 
 export function ThemeToggle({ className = "" }: { className?: string }) {
-  const { theme, toggle } = useTheme();
+  const { theme, toggle: toggleTheme } = useTheme();
+  const { toast } = useToast();
   const sombre = theme === "dark";
+
+  const toggle = () => {
+    toggleTheme();
+    toast(sombre ? "Mode clair" : "Mode sombre", "info");
+  };
 
   return (
     <button
