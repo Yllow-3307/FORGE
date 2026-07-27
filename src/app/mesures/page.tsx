@@ -11,7 +11,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Bouton, Carte, Champ, Pastille, Saisie, Vide, cx } from "@/components/ui";
+import { Bouton, Carte, Champ, Pastille, Saisie, Squelette, Vide, cx } from "@/components/ui";
 import { useApp } from "@/lib/useApp";
 import {
   enregistrerFiche, enregistrerPoids, listerPoids, supprimerPoids, type MesurePoids,
@@ -126,11 +126,12 @@ export default function PageMesures() {
 
   if (chargement) {
     return (
-      <div className="grid min-h-[60dvh] place-items-center">
-        <div
-          role="status" aria-label="Chargement en cours"
-          className="h-9 w-9 animate-spin rounded-full border-2 border-[var(--border-strong)] border-t-[var(--accent)]"
-        />
+      <div role="status" aria-busy="true" className="space-y-4">
+        <span className="sr-only">Chargement…</span>
+        <Squelette className="h-48" />
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Squelette key={i} className="h-12" />
+        ))}
       </div>
     );
   }

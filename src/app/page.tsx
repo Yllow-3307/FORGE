@@ -10,7 +10,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bouton, Carte, Vide, cascade, enfantCascade, cx } from "@/components/ui";
+import { Bouton, Carte, SqueletteGrille, Vide, cascade, enfantCascade, cx } from "@/components/ui";
 import { useSurvolCarte } from "@/hooks/useCoarsePointer";
 import { CATALOGUE_WIDGETS, CLASSES_TAILLE, RendreWidget } from "@/components/widgets";
 import { useApp, libelleSeance } from "@/lib/useApp";
@@ -57,15 +57,7 @@ export default function Accueil() {
   };
 
   if (chargement) {
-    return (
-      <div className="grid min-h-[60dvh] place-items-center gap-4 text-center">
-        <div
-          role="status" aria-label="Chargement en cours"
-          className="h-9 w-9 animate-spin rounded-full border-2 border-[var(--border-strong)] border-t-[var(--accent)]"
-        />
-        <p className="text-sm text-muted">Chargement de votre programme…</p>
-      </div>
-    );
+    return <SqueletteGrille />;
   }
 
   if (!fiche) {

@@ -503,3 +503,32 @@ export function Vide({
     </div>
   );
 }
+
+export function Squelette({ className }: { className?: string }) {
+  return <div aria-hidden className={cx("skeleton", className)} />;
+}
+
+export function SqueletteGrille({ lignes = 4 }: { lignes?: number }) {
+  return (
+    <div
+      role="status"
+      aria-label="Chargement du tableau de bord"
+      aria-busy="true"
+      className="space-y-4"
+    >
+      <span className="sr-only">Chargement…</span>
+      {/* Grande carte éditoriale */}
+      <Squelette className="h-44 rounded-xl3 sm:h-52" />
+      {/* Grille widgets */}
+      <div className="grid auto-rows-[minmax(132px,auto)] grid-cols-2 gap-3 sm:grid-cols-4">
+        <Squelette className="col-span-2 h-full sm:col-span-4" />
+        {Array.from({ length: lignes }).map((_, i) => (
+          <Squelette
+            key={i}
+            className={i % 2 === 0 ? "col-span-1" : "col-span-1"}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
