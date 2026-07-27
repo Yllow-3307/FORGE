@@ -11,7 +11,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ThemeToggle } from "./theme";
 import { MarqueForge } from "./logo";
 import { cx } from "./ui";
@@ -34,14 +34,40 @@ const LIENS_SECONDAIRES = [
 // « Compte » vit dans l'icône dédiée, à droite.
 const TOUS = [...LIENS_PRINCIPAUX, LIENS_SECONDAIRES[0], LIENS_SECONDAIRES[1]];
 
+const ONGLETS_MOBILE = LIENS_PRINCIPAUX.slice(0, 4); // Accueil, Séance, Nutrition, Programme
+const LIENS_PLUS = [...LIENS_PRINCIPAUX.slice(4), ...LIENS_SECONDAIRES]; // Progrès + 3 secondaires
+
 export function Navigation() {
   const chemin = usePathname();
   const [menuOuvert, setMenuOuvert] = useState(false);
+  const premierLienRef = useRef<HTMLAnchorElement>(null);
+  const boutonPlusRef = useRef<HTMLButtonElement>(null);
 
   const estActif = (href: string) =>
     href === "/" ? chemin === "/" : chemin.startsWith(href);
 
-  const secondaireActif = LIENS_SECONDAIRES.some((l) => estActif(l.href));
+  const secondaireActif = LIENS_PLUS.some((l) => estActif(l.href));
+
+  // Focus management pour le panneau Plus + Escape
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && menuOuvert) {
+        setMenuOuvert(false);
+      }
+    };
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [menuOuvert]);
+
+  useEffect(() => {
+    if (menuOuvert) {
+      setTimeout(() => {
+        premierLienRef.current?.focus();
+      }, 50);
+    } else if (boutonPlusRef.current) {
+      // focus retour géré dans onClick du bouton pour fiabilité
+    }
+  }, [menuOuvert]);
 
   return (
     <>
@@ -115,36 +141,46 @@ export function Navigation() {
       >
         <AnimatePresence>
           {menuOuvert && (
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 12 }}
-              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-              className="glass-strong mb-2 grid grid-cols-3 gap-2 rounded-xl2 p-2"
-            >
-              {LIENS_SECONDAIRES.map((l) => (
-                <Link
-                  key={l.href}
-                  href={l.href}
-                  onClick={() => setMenuOuvert(false)}
-                  className={cx(
-                    "flex min-h-11 items-center gap-2 rounded-2xl px-3 py-2.5 text-sm",
-                    "transition-colors duration-200",
-                    estActif(l.href)
-                      ? "bg-[var(--accent-soft)] font-medium text-[var(--accent)]"
-                      : "text-muted hover:bg-[var(--surface-2)]",
-                  )}
-                >
-                  <span>{l.icone}</span>
-                  {l.libelle}
-                </Link>
-              ))}
-            </motion.div>
+            <>
+              <div
+                aria-hidden="true"
+                className="fixed inset-0 -z-10"
+                onClick={() => setMenuOuvert(false)}
+              />
+              <motion.div
+                id="menu-plus"
+                role="menu"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 12 }}
+                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                className="glass-strong mb-2 grid grid-cols-2 gap-2 rounded-xl2 p-2"
+              >
+                {LIENS_PLUS.map((l, index) => (
+                  <Link
+                    key={l.href}
+                    href={l.href}
+                    onClick={() => setMenuOuvert(false)}
+                    className={cx(
+                      "flex min-h-12 items-center gap-2 rounded-2xl px-3 py-2.5 text-sm",
+                      "transition-colors duration-200",
+                      estActif(l.href)
+                        ? "bg-[var(--accent-soft)] font-medium text-[var(--accent)]"
+                        : "text-muted hover:bg-[var(--surface-2)]",
+                    )}
+                    ref={index === 0 ? (el) => el?.focus() : undefined}
+                  >
+                    <span>{l.icone}</span>
+                    {l.libelle}
+                  </Link>
+                ))}
+              </motion.div>
+            </>
           )}
         </AnimatePresence>
 
         <div className="glass-strong flex items-center justify-around rounded-xl2 px-1 py-1.5">
-          {LIENS_PRINCIPAUX.map((l) => {
+          {ONGLETS_MOBILE.map((l) => {
             const actif = estActif(l.href);
             return (
               <Link
@@ -153,7 +189,7 @@ export function Navigation() {
                 onClick={() => setMenuOuvert(false)}
                 aria-current={actif ? "page" : undefined}
                 className={cx(
-                  "relative flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center",
+                  "relative flex min-h-12 min-w-0 flex-1 flex-col items-center justify-center",
                   "gap-0.5 rounded-2xl px-1 py-1.5 transition-colors duration-200",
                   actif ? "font-medium text-[var(--accent)]" : "text-muted",
                 )}
@@ -166,7 +202,7 @@ export function Navigation() {
                   />
                 )}
                 <span className="text-base" aria-hidden>{l.icone}</span>
-                <span className="w-full truncate text-center text-[0.58rem]">
+                <span className="w-full truncate text-center text-[0.65rem]">
                   {l.libelle}
                 </span>
               </Link>
@@ -174,18 +210,27 @@ export function Navigation() {
           })}
 
           <button
+            ref={boutonPlusRef}
             type="button"
-            onClick={() => setMenuOuvert((m) => !m)}
+            onClick={() => {
+              const nouveau = !menuOuvert;
+              setMenuOuvert(nouveau);
+              if (!nouveau) {
+                // Focus retour immédiat si fermeture directe
+                setTimeout(() => boutonPlusRef.current?.focus(), 0);
+              }
+            }}
             aria-label="Plus d'options"
             aria-expanded={menuOuvert}
+            aria-controls="menu-plus"
             className={cx(
-              "relative flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center",
+              "relative flex min-h-12 min-w-0 flex-1 flex-col items-center justify-center",
               "gap-0.5 rounded-2xl px-1 py-1.5 transition-colors duration-200",
               secondaireActif || menuOuvert ? "text-[var(--accent)]" : "text-muted",
             )}
           >
             <span className="text-base" aria-hidden>{menuOuvert ? "✕" : "⋯"}</span>
-            <span className="text-[0.58rem]">Plus</span>
+            <span className="text-[0.65rem]">Plus</span>
           </button>
         </div>
       </nav>
