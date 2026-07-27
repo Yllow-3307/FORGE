@@ -93,9 +93,20 @@ export default function PageNutrition() {
     return (
       <Carte>
         <Vide
-          icone="🥗" titre="Aucun programme"
-          texte="Créez votre profil pour obtenir vos cibles nutritionnelles."
+          icone="🥗" titre="Votre plan nutritionnel"
+          texte="Calories, protéines, glucides, lipides et hydratation : des cibles calculées selon votre objectif, votre morphologie et vos contraintes alimentaires."
+          apercu={
+            <div aria-hidden className="grid grid-cols-4 gap-2">
+              {["kcal", "P", "G", "L"].map((etiquette) => (
+                <div key={etiquette} className="rounded-2xl bg-[var(--surface-2)] py-3">
+                  <p className="chiffre valeur-sm text-faint">—</p>
+                  <p className="mt-1 text-[0.65rem] text-faint">{etiquette}</p>
+                </div>
+              ))}
+            </div>
+          }
           action={<Link href="/profil"><Bouton>Créer mon profil</Bouton></Link>}
+          secondaire={<Link href="/" className="text-sm text-muted underline underline-offset-4">Retour à l&apos;accueil</Link>}
         />
       </Carte>
     );

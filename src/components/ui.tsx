@@ -481,12 +481,14 @@ export function Barre({
 
 /** État vide illustré. */
 export function Vide({
-  icone = "🌱", titre, texte, action,
+  icone = "🌱", titre, texte, action, apercu, secondaire,
 }: {
   icone?: string;
   titre: string;
   texte?: string;
   action?: ReactNode;
+  apercu?: ReactNode;
+  secondaire?: ReactNode;
 }) {
   return (
     <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
@@ -499,7 +501,9 @@ export function Vide({
       </span>
       <p className="text-lg font-semibold text-ink">{titre}</p>
       {texte && <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted text-pretty">{texte}</p>}
+      {apercu && <div className="mt-6 w-full max-w-md">{apercu}</div>}
       {action && <div className="mt-6">{action}</div>}
+      {secondaire && <div className="mt-3">{secondaire}</div>}
     </div>
   );
 }
