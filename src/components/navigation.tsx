@@ -9,7 +9,7 @@
  */
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useRef, useEffect } from "react";
 import { ThemeToggle } from "./theme";
@@ -27,6 +27,7 @@ import {
   User,
   Menu,
   X,
+  ChevronLeft,
 } from "lucide-react";
 
 interface LienNavigation {
@@ -55,11 +56,36 @@ const TOUS = [...LIENS_PRINCIPAUX, LIENS_SECONDAIRES[0], LIENS_SECONDAIRES[1]];
 const ONGLETS_MOBILE = LIENS_PRINCIPAUX.slice(0, 4); // Accueil, Séance, Nutrition, Programme
 const LIENS_PLUS = [...LIENS_PRINCIPAUX.slice(4), ...LIENS_SECONDAIRES]; // Progrès + 3 secondaires
 
+// Routes racines : onglets de la barre inférieure (pages « accueil »).
+const RACINES = ONGLETS_MOBILE.map((l) => l.href);
+
+// Titres affichés dans l'en-tête mobile sur les pages profondes.
+// Repli : chaîne vide → on n'affiche alors que le bouton retour sans titre.
+const TITRES: Record<string, string> = {
+  "/profil": "Mon profil",
+  "/progres": "Progrès",
+  "/mesures": "Mesures",
+  "/parametres": "Réglages",
+};
+
 export function Navigation() {
   const chemin = usePathname();
+  const router = useRouter();
   const [menuOuvert, setMenuOuvert] = useState(false);
   const premierLienRef = useRef<HTMLAnchorElement>(null);
   const boutonPlusRef = useRef<HTMLButtonElement>(null);
+
+  // Page profonde : toute route qui n'est pas un onglet de la barre inférieure.
+  const estProfonde = !RACINES.includes(chemin);
+  const titre = TITRES[chemin] ?? "";
+
+  // TODO: sur /profil, si l'utilisateur est au milieu du stepper (saisie en cours),
+  // un retour direct perd sa progression. Prévoir une confirmation de sortie dans
+  // une itération future (avant-prompt « Abandonner la saisie ? »).
+  const retour = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) router.back();
+    else router.push("/");
+  };
 
   const estActif = (href: string) =>
     href === "/" ? chemin === "/" : chemin.startsWith(href);
@@ -149,10 +175,37 @@ export function Navigation() {
 
       {/* ---------- Barre supérieure mobile ---------- */}
       <header className="sticky top-0 z-40 px-3 pt-3 md:hidden">
-        <div className="glass-strong flex items-center justify-between rounded-pill py-1.5 pl-3 pr-1.5">
-          <Link href="/" className="rounded-pill py-1">
-            <MarqueForge taille={28} />
-          </Link>
+        <div
+          className={cx(
+            "glass-strong flex items-center justify-between rounded-pill py-1.5",
+            estProfonde ? "pl-1.5 pr-1.5" : "pl-3 pr-1.5",
+          )}
+        >
+          {/* Zone gauche : bouton retour (page profonde) ou logo (racine). */}
+          {estProfonde ? (
+            <button
+              type="button"
+              onClick={retour}
+              aria-label="Revenir en arrière"
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-[var(--surface-2)]"
+            >
+              <ChevronLeft size={22} aria-hidden />
+            </button>
+          ) : (
+            <Link href="/" className="rounded-pill py-1">
+              <MarqueForge taille={28} />
+            </Link>
+          )}
+
+          {/* Titre de page (centré, tronqué) — visible uniquement en page profonde. */}
+          {estProfonde && titre !== "" && (
+            <p className="min-w-0 flex-1 truncate text-center text-sm font-semibold">
+              {titre}
+            </p>
+          )}
+          {estProfonde && titre === "" && <div className="flex-1" aria-hidden />}
+
+          {/* Zone droite : bascule de thème, toujours présente. */}
           <ThemeToggle />
         </div>
       </header>
