@@ -65,6 +65,7 @@ export interface Reglages {
     bilanHebdo: boolean;
   };
   widgets: Widget[];
+  minuteur: { son: boolean; vibration: boolean };   // NOUVEAU
 }
 
 /* ------------------------------------------------------------- Constantes */
@@ -87,6 +88,7 @@ export const REGLAGES_DEFAUT: Reglages = {
   email: "",
   notifications: { seance: true, repas: false, hydratation: true, bilanHebdo: true },
   widgets: WIDGETS_DEFAUT,
+  minuteur: { son: true, vibration: true },
 };
 
 /* -------------------------------------------------------------- Utilitaires */
@@ -417,7 +419,19 @@ export function reculerEtape(skillId: string): void {
 /* --------------------------------------------------------------- Réglages */
 
 export function lireReglages(): Reglages {
-  return { ...REGLAGES_DEFAUT, ...lire<Partial<Reglages>>(CLE_REGLAGES, {}) };
+  const stocke = lire<Partial<Reglages>>(CLE_REGLAGES, {});
+  return {
+    ...REGLAGES_DEFAUT,
+    ...stocke,
+    notifications: {
+      ...REGLAGES_DEFAUT.notifications,
+      ...(stocke.notifications ?? {}),
+    },
+    minuteur: {
+      ...REGLAGES_DEFAUT.minuteur,
+      ...(stocke.minuteur ?? {}),
+    },
+  };
 }
 
 export function majReglages(maj: Partial<Reglages>): Reglages {

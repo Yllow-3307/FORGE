@@ -450,6 +450,26 @@ export default function PageParametres() {
             actif={reglages.notifications.bilanHebdo}
             onChange={(v) => majNotif("bilanHebdo", v)}
           />
+          <Interrupteur
+            label="Bip de fin de repos"
+            description="Émet un signal sonore de trois bips quand le temps est écoulé."
+            actif={reglages.minuteur.son}
+            onChange={(v) => {
+              majReglages({ minuteur: { ...reglages.minuteur, son: v } });
+              rafraichir();
+            }}
+          />
+          {typeof navigator !== "undefined" && "vibrate" in navigator && (
+            <Interrupteur
+              label="Vibration de fin de repos"
+              description="Fait vibrer l'appareil à la fin du compte à rebours."
+              actif={reglages.minuteur.vibration}
+              onChange={(v) => {
+                majReglages({ minuteur: { ...reglages.minuteur, vibration: v } });
+                rafraichir();
+              }}
+            />
+          )}
 
           <div className="mt-4 rounded-2xl border border-[var(--border)] p-4">
             {permission === "indisponible" ? (

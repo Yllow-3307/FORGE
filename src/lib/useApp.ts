@@ -114,7 +114,18 @@ export function useApp(): EtatApp {
   );
   const reglagesStockes = useStockageLocal<Partial<Reglages>>("forge:reglages", {});
   const reglages = useMemo<Reglages>(
-    () => ({ ...REGLAGES_DEFAUT, ...reglagesStockes }),
+    () => ({
+      ...REGLAGES_DEFAUT,
+      ...reglagesStockes,
+      notifications: {
+        ...REGLAGES_DEFAUT.notifications,
+        ...(reglagesStockes.notifications ?? {}),
+      },
+      minuteur: {
+        ...REGLAGES_DEFAUT.minuteur,
+        ...(reglagesStockes.minuteur ?? {}),
+      },
+    }),
     [reglagesStockes],
   );
 

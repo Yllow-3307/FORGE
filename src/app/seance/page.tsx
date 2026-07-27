@@ -16,7 +16,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Bouton, Carte, Pastille, Squelette, Vide, cx } from "@/components/ui";
 import { CercleMinuteur, useMinuteur } from "@/components/minuteur";
 import { useApp } from "@/lib/useApp";
-import { majJour, aujourdhui } from "@/lib/suivi";
+import { majJour, aujourdhui, majReglages } from "@/lib/suivi";
 import { BIBLIOTHEQUE } from "@/lib/moteur/exercices";
 import {
   consignesSeance, echauffementPour, etirementsPour, musclesSollicites,
@@ -25,7 +25,7 @@ import {
 type Phase = "topo" | "echauffement" | "seance" | "etirements" | "recap";
 
 export default function PageSeance() {
-  const { chargement, fiche, programme, seancesDuJour, rafraichir } = useApp();
+  const { chargement, fiche, programme, seancesDuJour, rafraichir, reglages } = useApp();
   const [phase, setPhase] = useState<Phase>("topo");
   const [indexEchauffement, setIndexEchauffement] = useState(0);
   const [indexBloc, setIndexBloc] = useState(0);
@@ -66,6 +66,16 @@ export default function PageSeance() {
   const seriesValidees = Object.values(seriesFaites).reduce((a, n) => a + n, 0);
   const accomplissement = totalSeries > 0 ? Math.round((seriesValidees / totalSeries) * 100) : 0;
 
+  const majMinuteur = (cle: "son" | "vibration", val: boolean) => {
+    majReglages({
+      minuteur: {
+        ...reglages.minuteur,
+        [cle]: val,
+      },
+    });
+    rafraichir();
+  };
+
   /* ------------------------------------------------------------ minuteurs */
 
   const etapeEch = echauffement[indexEchauffement];
@@ -75,10 +85,16 @@ export default function PageSeance() {
     } else {
       setPhase("seance");
     }
+  }, {
+    son: reglages?.minuteur?.son,
+    vibration: reglages?.minuteur?.vibration,
   });
 
   const blocCourant = blocs[indexBloc];
-  const minuteurRepos = useMinuteur(blocCourant?.repos ?? 60, () => setEnRepos(false));
+  const minuteurRepos = useMinuteur(blocCourant?.repos ?? 60, () => setEnRepos(false), {
+    son: reglages?.minuteur?.son,
+    vibration: reglages?.minuteur?.vibration,
+  });
 
   /**
    * Certains blocs se mesurent en temps et non en répétitions : cardio
@@ -120,7 +136,10 @@ export default function PageSeance() {
 
   // Déclaré après `validerSerie` : le minuteur peut l'appeler directement à
   // la fin du décompte, sans passer par une ref.
-  const minuteurBloc = useMinuteur(dureeBloc, () => validerSerie());
+  const minuteurBloc = useMinuteur(dureeBloc, () => validerSerie(), {
+    son: reglages?.minuteur?.son,
+    vibration: reglages?.minuteur?.vibration,
+  });
 
   const terminerSeance = () => {
     majJour(aujourdhui(), {
@@ -257,12 +276,18 @@ export default function PageSeance() {
               <h2 className="mt-4 text-2xl font-light">{etapeEch.nom}</h2>
               <p className="mt-2 max-w-md text-sm text-muted text-pretty">{etapeEch.consigne}</p>
 
-              <div className="my-8">
+              <div className="my-8 flex flex-col items-center">
                 <CercleMinuteur
                   restant={minuteurEch.restant}
                   total={etapeEch.duree}
                   couleur="var(--warn)"
                   libelle={minuteurEch.actif ? "en cours" : "en pause"}
+                />
+                <ControlesMinuteur
+                  son={reglages?.minuteur?.son}
+                  vibration={reglages?.minuteur?.vibration}
+                  onChangerSon={(v) => majMinuteur("son", v)}
+                  onChangerVibration={(v) => majMinuteur("vibration", v)}
                 />
               </div>
 
@@ -323,12 +348,18 @@ export default function PageSeance() {
                   <h2 className="mt-4 text-xl font-light text-muted">
                     Prochaine série : {blocCourant.nom}
                   </h2>
-                  <div className="my-8">
+                  <div className="my-8 flex flex-col items-center">
                     <CercleMinuteur
                       restant={minuteurRepos.restant}
                       total={blocCourant.repos}
                       couleur="var(--eau)"
                       libelle="repos"
+                    />
+                    <ControlesMinuteur
+                      son={reglages?.minuteur?.son}
+                      vibration={reglages?.minuteur?.vibration}
+                      onChangerSon={(v) => majMinuteur("son", v)}
+                      onChangerVibration={(v) => majMinuteur("vibration", v)}
                     />
                   </div>
                   <div className="flex flex-wrap justify-center gap-3">
@@ -349,11 +380,17 @@ export default function PageSeance() {
 
                   {estChronometre ? (
                     <>
-                      <div className="my-6">
+                      <div className="my-6 flex flex-col items-center">
                         <CercleMinuteur
                           restant={minuteurBloc.restant}
                           total={dureeBloc}
                           libelle={minuteurBloc.actif ? "en cours" : "prêt"}
+                        />
+                        <ControlesMinuteur
+                          son={reglages?.minuteur?.son}
+                          vibration={reglages?.minuteur?.vibration}
+                          onChangerSon={(v) => majMinuteur("son", v)}
+                          onChangerVibration={(v) => majMinuteur("vibration", v)}
                         />
                       </div>
                       <p className="text-sm text-muted">
@@ -571,6 +608,56 @@ export default function PageSeance() {
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+function ControlesMinuteur({
+  son,
+  vibration,
+  onChangerSon,
+  onChangerVibration,
+}: {
+  son: boolean;
+  vibration: boolean;
+  onChangerSon: (v: boolean) => void;
+  onChangerVibration: (v: boolean) => void;
+}) {
+  const supporteVibration = typeof navigator !== "undefined" && "vibrate" in navigator;
+
+  return (
+    <div className="flex justify-center gap-3 mt-4">
+      <button
+        type="button"
+        aria-pressed={son}
+        aria-label="Activer/Couper le son du minuteur"
+        onClick={() => onChangerSon(!son)}
+        className={cx(
+          "flex items-center justify-center min-h-11 min-w-11 rounded-full border text-base transition-colors",
+          son
+            ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]"
+            : "border-[var(--border)] bg-[var(--surface-2)] text-muted"
+        )}
+      >
+        {son ? "🔊" : "🔇"}
+      </button>
+
+      {supporteVibration && (
+        <button
+          type="button"
+          aria-pressed={vibration}
+          aria-label="Activer/Couper la vibration"
+          onClick={() => onChangerVibration(!vibration)}
+          className={cx(
+            "flex items-center justify-center min-h-11 min-w-11 rounded-full border text-base transition-colors",
+            vibration
+              ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]"
+              : "border-[var(--border)] bg-[var(--surface-2)] text-muted"
+          )}
+        >
+          {vibration ? "📳" : "⚪"}
+        </button>
+      )}
     </div>
   );
 }
