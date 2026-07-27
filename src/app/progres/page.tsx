@@ -11,7 +11,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bouton, Carte, Pastille, Squelette, Vide, cx } from "@/components/ui";
+import { Bouton, Carte, Pastille, Squelette, Vide, cx, Stat } from "@/components/ui";
 import { useApp } from "@/lib/useApp";
 import {
   FAMILLES, SKILLS, skillsDuProgramme, type Skill,
@@ -21,18 +21,46 @@ import {
 } from "@/lib/suivi";
 import { useVersionStockage } from "@/lib/store";
 
-function BarreEtapes({ etape, total }: { etape: number; total: number }) {
+function libelleDifficulte(n: 1 | 2 | 3 | 4 | 5): string {
+  switch (n) {
+    case 1: return "Accessible";
+    case 2: return "Intermédiaire";
+    case 3: return "Avancé";
+    case 4: return "Expert";
+    case 5: return "Élite";
+  }
+}
+
+function BarreEtapes({ etape, total, ariaValuetext }: { etape: number; total: number; ariaValuetext: string }) {
   return (
-    <div className="flex gap-1">
-      {Array.from({ length: total }, (_, i) => (
-        <div
-          key={i}
-          className={cx(
-            "h-1.5 flex-1 rounded-pill transition-colors",
-            i < etape ? "bg-[var(--accent)]" : "bg-[var(--surface-2)]",
-          )}
-        />
-      ))}
+    <div
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={total}
+      aria-valuenow={etape}
+      aria-valuetext={ariaValuetext}
+    >
+      <div className="flex gap-1 h-2" aria-hidden>
+        {Array.from({ length: total }, (_, i) => {
+          const valide = i < etape;
+          const courant = i === etape;
+          return (
+            <motion.div
+              key={i}
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              transition={{ duration: 0.35, delay: i * 0.04, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] }}
+              style={{ transformOrigin: "left" }}
+              className={cx(
+                "flex-1 rounded-pill",
+                valide ? "bg-[var(--accent)]" :
+                courant ? "bg-[var(--accent-soft-fort)] ring-1 ring-[var(--accent)]" :
+                "bg-[var(--surface-2)]",
+              )}
+            />
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -62,14 +90,24 @@ function CarteSkill({
             {maitrise && <Pastille ton="accent">maîtrisé</Pastille>}
             {p.actif && !maitrise && <Pastille ton="accent">en cours</Pastille>}
           </div>
-          <p className="mt-0.5 text-xs text-muted">
-            Étape {Math.min(p.etape + (maitrise ? 0 : 1), total)}/{total}
-            {" · "}
-            {"★".repeat(skill.difficulte)}
-            <span className="text-faint">{"★".repeat(5 - skill.difficulte)}</span>
+          <p className="mt-0.5 text-xs text-muted truncate">
+            {maitrise
+              ? `Maîtrisé · ${total} paliers validés`
+              : `Palier ${p.etape + 1} sur ${total} · ${skill.etapes[Math.min(p.etape, total - 1)].nom}`}
+            <span className="ml-2 inline-flex items-center gap-1 align-middle">
+              <Pastille ton="neutre">{libelleDifficulte(skill.difficulte)}</Pastille>
+            </span>
           </p>
           <div className="mt-2">
-            <BarreEtapes etape={p.etape} total={total} />
+            <BarreEtapes
+              etape={p.etape}
+              total={total}
+              ariaValuetext={
+                maitrise
+                  ? `Maîtrisé : ${total} paliers validés`
+                  : `Palier ${p.etape + 1} sur ${total} : ${skill.etapes[Math.min(p.etape, total - 1)].nom}`
+              }
+            />
           </div>
         </div>
         <span className={cx("shrink-0 text-muted transition-transform", ouvert && "rotate-180")}>
@@ -100,7 +138,7 @@ function CarteSkill({
                       key={i}
                       className={cx(
                         "flex gap-3 rounded-2xl px-3.5 py-2.5",
-                        courante ? "bg-[var(--accent-soft)]"
+                        courante ? "bg-[var(--accent-soft)] border-2 border-[var(--accent)]"
                           : faite ? "bg-[var(--surface-2)] opacity-70" : "bg-[var(--surface-2)]",
                       )}
                     >
@@ -115,12 +153,14 @@ function CarteSkill({
                         {faite ? "✓" : i + 1}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className={cx("text-sm font-medium", faite && "line-through")}>
+                        <p className={cx("text-sm font-medium", faite && "line-through text-faint")}>
                           {e.nom}
                         </p>
-                        <p className="text-xs text-muted">{e.critere}</p>
+                        <p className={cx("text-xs font-semibold", courante ? "text-ink" : "text-muted")}>
+                          {e.critere}
+                        </p>
                         {courante && (
-                          <p className="mt-1 text-xs italic text-[var(--accent)]">
+                          <p className="mt-1 text-xs text-muted">
                             {e.conseil}
                           </p>
                         )}
@@ -214,6 +254,22 @@ export default function PageProgres() {
       .filter((s): s is Skill => Boolean(s));
   }, [version]);
 
+  const stats = useMemo(() => {
+    const suivisData = suivis;
+    const paliersValides = suivisData.reduce((sum, s) => {
+      return sum + progresSkill(s.id).etape;
+    }, 0);
+    const maitrises = suivisData.filter((s) => {
+      const sk = SKILLS.find((sk) => sk.id === s.id);
+      return sk ? progresSkill(s.id).etape >= sk.etapes.length : false;
+    }).length;
+    return {
+      suivis: suivisData.length,
+      paliersValides,
+      maitrises,
+    };
+  }, [suivis]);
+
   const recommandes = useMemo(
     () => duProgramme.filter((s) => !suivis.some((x) => x.id === s.id)).slice(0, 3),
     [duProgramme, suivis],
@@ -243,6 +299,12 @@ export default function PageProgres() {
       {/* ------------------------------- Toi ------------------------------ */}
       <section className="space-y-3">
         <h1 className="px-1 text-sm font-semibold uppercase tracking-wider text-faint">Toi</h1>
+
+        <div className="grid grid-cols-3 gap-2 px-1">
+          <Stat label="Skills suivis" valeur={stats.suivis} />
+          <Stat label="Paliers validés" valeur={stats.paliersValides} />
+          <Stat label="Skills maîtrisés" valeur={stats.maitrises} />
+        </div>
 
         {suivis.length === 0 ? (
           <Carte>
