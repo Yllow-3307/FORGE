@@ -7,7 +7,7 @@
  * l'utilisateur compose lui-même (trois formats, six types).
  */
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bouton, Carte, SqueletteGrille, Vide, cascade, enfantCascade, cx } from "@/components/ui";
@@ -16,10 +16,153 @@ import { CATALOGUE_WIDGETS, CLASSES_TAILLE, RendreWidget } from "@/components/wi
 import { useApp, libelleSeance } from "@/lib/useApp";
 import { majReglages, type TailleWidget, type TypeWidget, type Widget } from "@/lib/suivi";
 
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+  type DragStartEvent,
+  type DragOverEvent,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  rectSortingStrategy,
+  sortableKeyboardCoordinates,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { restrictToParentElement } from "@dnd-kit/modifiers";
+import { GripVertical } from "lucide-react";
+
+function usePrefersReducedMotion(): boolean {
+  const [pref, setPref] = useState(() => {
+    if (typeof window !== "undefined" && window.matchMedia) {
+      return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    }
+    return false;
+  });
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const onChange = (e: MediaQueryListEvent) => setPref(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  return pref;
+}
+
+function nomLisible(widget: Widget): string {
+  return CATALOGUE_WIDGETS.find((c) => c.type === widget.type)?.nom ?? widget.type;
+}
+
+interface PropsTriable {
+  widget: Widget;
+  index: number;
+  total: number;
+  estSurvole: boolean;
+  prefersReduced: boolean;
+  onRetirer: (id: string) => void;
+  onDeplacer: (id: string, sens: -1 | 1) => void;
+  onChangerTaille: (id: string) => void;
+}
+
+function WidgetTriable({
+  widget,
+  index,
+  total,
+  estSurvole,
+  prefersReduced,
+  onRetirer,
+  onDeplacer,
+  onChangerTaille,
+}: PropsTriable) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: widget.id,
+  });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition: prefersReduced ? undefined : transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cx(
+        "relative",
+        CLASSES_TAILLE[widget.taille],
+        isDragging && "opacity-40",
+        estSurvole && "outline-2 outline-dashed outline-[var(--accent)] outline-offset-2"
+      )}
+    >
+      <div className={cx("h-full pointer-events-none opacity-90")}>
+        <RendreWidget type={widget.type} taille={widget.taille} />
+      </div>
+
+      <div className="absolute inset-0 z-10 flex flex-col justify-between rounded-xl2 border-2 border-dashed border-[var(--accent)] bg-[var(--accent-soft-fort)] p-2 backdrop-blur-[2px]">
+        <div className="flex justify-between gap-1">
+          <button
+            onClick={() => onDeplacer(widget.id, -1)}
+            disabled={index === 0}
+            aria-label="Déplacer vers la gauche"
+            className="grid h-8 w-8 place-items-center rounded-full bg-[var(--surface)] text-sm shadow-soft transition hover:bg-white disabled:opacity-30"
+          >
+            ←
+          </button>
+
+          <button
+            {...attributes}
+            {...listeners}
+            aria-label="Déplacer le widget"
+            className="grid h-8 w-8 place-items-center rounded-full bg-[var(--surface)] shadow-soft cursor-grab active:cursor-grabbing select-none"
+            style={{ touchAction: "none" }}
+          >
+            <GripVertical className="h-4 w-4" aria-hidden="true" />
+          </button>
+
+          <button
+            onClick={() => onRetirer(widget.id)}
+            aria-label="Retirer le widget"
+            className="grid h-8 w-8 place-items-center rounded-full bg-[var(--danger)] text-sm text-white shadow-soft transition hover:brightness-110"
+          >
+            ×
+          </button>
+        </div>
+        <div className="flex justify-between gap-1">
+          <button
+            onClick={() => onChangerTaille(widget.id)}
+            className="rounded-pill bg-[var(--surface)] px-2.5 py-1.5 text-[0.65rem] font-medium shadow-soft transition hover:bg-white"
+          >
+            ⤢ taille
+          </button>
+          <button
+            onClick={() => onDeplacer(widget.id, 1)}
+            disabled={index === total - 1}
+            aria-label="Déplacer vers la droite"
+            className="grid h-8 w-8 place-items-center rounded-full bg-[var(--surface)] text-sm shadow-soft transition hover:bg-white disabled:opacity-30"
+          >
+            →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Accueil() {
   const { chargement, fiche, seancesDuJour, serie, reglages, rafraichir } = useApp();
   const survolCarte = useSurvolCarte();
   const [edition, setEdition] = useState(false);
+  const [actifId, setActifId] = useState<string | null>(null);
+  const [survoleId, setSurvoleId] = useState<string | null>(null);
+  const prefersReduced = usePrefersReducedMotion();
 
   const widgets = reglages.widgets;
   const repos = seancesDuJour.length === 0;
@@ -32,19 +175,19 @@ export default function Accueil() {
   const retirer = (id: string) => majWidgets(widgets.filter((w) => w.id !== id));
 
   const ajouter = (type: TypeWidget, taille: TailleWidget) => {
-    // Identifiant dérivé du contenu et du rang : stable et sans appel impur
-    // pendant le rendu (Date.now() est proscrit ici).
     const suffixe = widgets.reduce((n, w) => (w.type === type ? n + 1 : n), 0);
     majWidgets([...widgets, { id: `${type}-${suffixe}`, type, taille }]);
   };
 
   const changerTaille = (id: string) => {
-    majWidgets(widgets.map((w) => {
-      if (w.id !== id) return w;
-      const dispo = CATALOGUE_WIDGETS.find((c) => c.type === w.type)?.tailles ?? ["petit"];
-      const i = dispo.indexOf(w.taille);
-      return { ...w, taille: dispo[(i + 1) % dispo.length] };
-    }));
+    majWidgets(
+      widgets.map((w) => {
+        if (w.id !== id) return w;
+        const dispo = CATALOGUE_WIDGETS.find((c) => c.type === w.type)?.tailles ?? ["petit"];
+        const i = dispo.indexOf(w.taille);
+        return { ...w, taille: dispo[(i + 1) % dispo.length] };
+      })
+    );
   };
 
   const deplacer = (id: string, sens: -1 | 1) => {
@@ -55,6 +198,76 @@ export default function Accueil() {
     [copie[i], copie[j]] = [copie[j], copie[i]];
     majWidgets(copie);
   };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const widgetActif = actifId ? widgets.find((w) => w.id === actifId) ?? null : null;
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActifId(event.active.id as string);
+  };
+
+  const handleDragOver = (event: DragOverEvent) => {
+    setSurvoleId((event.over?.id as string) ?? null);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActifId(null);
+    setSurvoleId(null);
+    if (!over || active.id === over.id) return;
+    const depart = widgets.findIndex((w) => w.id === active.id);
+    const arrivee = widgets.findIndex((w) => w.id === over.id);
+    if (depart === -1 || arrivee === -1) return;
+    majWidgets(arrayMove(widgets, depart, arrivee));
+  };
+
+  const handleDragCancel = () => {
+    setActifId(null);
+    setSurvoleId(null);
+  };
+
+  const annonces = useMemo(
+    () => ({
+      onDragStart: ({ active }: { active: { id: unknown } }) => {
+        const id = active.id as string;
+        const idx = widgets.findIndex((w) => w.id === id);
+        const w = widgets[idx];
+        if (!w) return "";
+        return `Widget ${nomLisible(w)} saisi, position ${idx + 1} sur ${widgets.length}.`;
+      },
+      onDragOver: ({ active, over }: { active: { id: unknown }; over: { id: unknown } | null }) => {
+        if (!over) return "";
+        const id = active.id as string;
+        const overId = over.id as string;
+        const w = widgets.find((x) => x.id === id);
+        const j = widgets.findIndex((x) => x.id === overId);
+        if (!w || j === -1) return "";
+        return `Widget ${nomLisible(w)} déplacé en position ${j + 1}.`;
+      },
+      onDragEnd: ({ active, over }: { active: { id: unknown }; over: { id: unknown } | null }) => {
+        if (!over) return "";
+        const id = active.id as string;
+        const overId = over.id as string;
+        const w = widgets.find((x) => x.id === id);
+        const j = widgets.findIndex((x) => x.id === overId);
+        if (!w || j === -1) return "";
+        return `Widget ${nomLisible(w)} déposé en position ${j + 1}.`;
+      },
+      onDragCancel: ({ active }: { active: { id: unknown } }) => {
+        const id = active.id as string;
+        const idx = widgets.findIndex((w) => w.id === id);
+        const w = widgets[idx];
+        if (!w) return "Déplacement annulé.";
+        return `Déplacement annulé, widget ${nomLisible(w)} revenu en position ${idx + 1}.`;
+      },
+    }),
+    [widgets]
+  );
 
   if (chargement) {
     return <SqueletteGrille />;
@@ -70,7 +283,6 @@ export default function Accueil() {
       >
         <motion.section variants={enfantCascade}>
           <Carte fort className="carte-editoriale relative overflow-hidden p-6 sm:p-9">
-            {/* Halo corail diffusé dans l'angle : donne la profondeur du verre. */}
             <span
               aria-hidden
               className="pointer-events-none absolute -right-24 -top-28 h-64 w-64 rounded-full
@@ -91,7 +303,6 @@ export default function Accueil() {
                 </p>
               </div>
 
-              {/* Aperçu visuel des widgets simulés */}
               <div className="mx-auto max-w-3xl">
                 <div
                   className="grid gap-3 sm:grid-cols-5"
@@ -137,9 +348,7 @@ export default function Accueil() {
                       ))}
                     </div>
                     <div className="mt-3 h-1.5 overflow-hidden rounded-pill bg-[var(--surface-2)]">
-                      <div
-                        className="h-full w-[68%] rounded-pill bg-[var(--accent)]"
-                      />
+                      <div className="h-full w-[68%] rounded-pill bg-[var(--accent)]" />
                     </div>
                   </motion.div>
 
@@ -182,7 +391,6 @@ export default function Accueil() {
                 </div>
               </div>
 
-              {/* Arguments de valeur */}
               <div className="mx-auto max-w-3xl">
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4 transition hover:border-[var(--border-strong)] hover:shadow-soft">
@@ -209,16 +417,13 @@ export default function Accueil() {
                 </div>
               </div>
 
-              {/* CTA */}
               <div className="text-center">
                 <Link href="/profil">
                   <Bouton taille="lg" className="shadow-soft hover:shadow-lift">
                     Créer mon programme
                   </Bouton>
                 </Link>
-                <p className="mt-3 text-xs text-muted">
-                  Gratuit. 5 étapes. Résultat immédiat.
-                </p>
+                <p className="mt-3 text-xs text-muted">Gratuit. 5 étapes. Résultat immédiat.</p>
               </div>
             </div>
           </Carte>
@@ -229,11 +434,9 @@ export default function Accueil() {
 
   return (
     <motion.div variants={cascade} initial="initial" animate="animate" className="space-y-4 sm:space-y-5">
-      {/* -------------------------- En-tête série -------------------------- */}
+      {/* En-tête série */}
       <motion.section variants={enfantCascade}>
         <Carte fort className="carte-editoriale relative overflow-hidden p-6 sm:p-9">
-          {/* Halo corail diffusé dans l'angle : donne la profondeur du verre.
-              Purement décoratif, donc insensible au pointeur. */}
           <span
             aria-hidden
             className="pointer-events-none absolute -right-24 -top-28 h-64 w-64 rounded-full
@@ -277,22 +480,15 @@ export default function Accueil() {
         </Carte>
       </motion.section>
 
-      {/* ---------------------- Barre d'édition widgets --------------------- */}
-      <motion.div
-        variants={enfantCascade}
-        className="flex items-center justify-between gap-3 px-1 pt-1"
-      >
+      {/* Barre d'édition widgets */}
+      <motion.div variants={enfantCascade} className="flex items-center justify-between gap-3 px-1 pt-1">
         <h2 className="etiquette">Tableau de bord</h2>
-        <Bouton
-          variante={edition ? "principal" : "fantome"}
-          taille="sm"
-          onClick={() => setEdition((e) => !e)}
-        >
+        <Bouton variante={edition ? "principal" : "fantome"} taille="sm" onClick={() => setEdition((e) => !e)}>
           {edition ? "Terminer" : "Personnaliser"}
         </Bouton>
       </motion.div>
 
-      {/* ---------------------------- Grille -------------------------------- */}
+      {/* Grille */}
       <motion.section variants={enfantCascade}>
         {widgets.length === 0 ? (
           <Carte>
@@ -303,6 +499,58 @@ export default function Accueil() {
               action={<Bouton onClick={() => setEdition(true)}>Ajouter un widget</Bouton>}
             />
           </Carte>
+        ) : edition ? (
+          <>
+            <p className="mb-2 px-1 text-xs text-faint">
+              Maintenez la poignée pour déplacer un widget, ou utilisez les flèches.
+            </p>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDragEnd={handleDragEnd}
+              onDragCancel={handleDragCancel}
+              modifiers={[restrictToParentElement]}
+              accessibility={{ announcements: annonces }}
+            >
+              <SortableContext items={widgets.map((w) => w.id)} strategy={rectSortingStrategy}>
+                <div className="grid auto-rows-[minmax(132px,auto)] grid-cols-2 gap-3 md:auto-rows-[minmax(148px,auto)] md:grid-cols-3 lg:grid-cols-4">
+                  <AnimatePresence mode="popLayout">
+                    {widgets.map((w, i) => (
+                      <WidgetTriable
+                        key={w.id}
+                        widget={w}
+                        index={i}
+                        total={widgets.length}
+                        estSurvole={survoleId === w.id}
+                        prefersReduced={prefersReduced}
+                        onRetirer={retirer}
+                        onDeplacer={deplacer}
+                        onChangerTaille={changerTaille}
+                      />
+                    ))}
+                  </AnimatePresence>
+                </div>
+              </SortableContext>
+              <DragOverlay>
+                {widgetActif ? (
+                  <div
+                    className={cx(
+                      "scale-[1.04] overflow-hidden rounded-xl2 bg-[var(--surface)] shadow-[0_12px_40px_rgba(0,0,0,0.22)]",
+                      widgetActif.taille === "petit"
+                        ? "w-[172px] sm:w-[190px]"
+                        : widgetActif.taille === "grand"
+                          ? "w-[340px] sm:w-[360px]"
+                          : "w-[340px] sm:w-[640px]"
+                    )}
+                  >
+                    <RendreWidget type={widgetActif.type} taille={widgetActif.taille} />
+                  </div>
+                ) : null}
+              </DragOverlay>
+            </DndContext>
+          </>
         ) : (
           <div className="grid auto-rows-[minmax(132px,auto)] grid-cols-2 gap-3 md:auto-rows-[minmax(148px,auto)] md:grid-cols-3 lg:grid-cols-4">
             <AnimatePresence mode="popLayout">
@@ -364,7 +612,7 @@ export default function Accueil() {
         )}
       </motion.section>
 
-      {/* ------------------------ Catalogue en édition ---------------------- */}
+      {/* Catalogue en édition */}
       <AnimatePresence>
         {edition && (
           <motion.section
@@ -375,9 +623,7 @@ export default function Accueil() {
           >
             <Carte className="p-4 sm:p-5">
               <h3 className="mb-1 font-semibold">Ajouter un widget</h3>
-              <p className="mb-4 text-xs text-muted">
-                Touchez ⤢ sur un widget pour changer son format.
-              </p>
+              <p className="mb-4 text-xs text-muted">Touchez ⤢ sur un widget pour changer son format.</p>
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {CATALOGUE_WIDGETS.map((c) => (
                   <button
@@ -399,7 +645,7 @@ export default function Accueil() {
         )}
       </AnimatePresence>
 
-      {/* --------------------------- Accès rapides -------------------------- */}
+      {/* Accès rapides */}
       <motion.section variants={enfantCascade} className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {[
           { href: "/nutrition", emoji: "🥗", nom: "Nutrition" },
@@ -408,10 +654,7 @@ export default function Accueil() {
           { href: "/mesures", emoji: "⚖️", nom: "Mesures" },
         ].map((l) => (
           <Link key={l.href} href={l.href} className="rounded-xl2">
-            <Carte
-              {...survolCarte}
-              className="flex min-h-14 items-center gap-2.5 px-4 py-3.5"
-            >
+            <Carte {...survolCarte} className="flex min-h-14 items-center gap-2.5 px-4 py-3.5">
               <span className="text-lg">{l.emoji}</span>
               <span className="text-sm font-medium">{l.nom}</span>
             </Carte>
@@ -425,8 +668,8 @@ export default function Accueil() {
             <div className="flex items-start gap-3">
               <span className="text-xl">🌙</span>
               <p className="text-sm leading-relaxed text-muted text-pretty">
-                Journée de récupération : elle fait partie du programme. Marche, sommeil et
-                alimentation restent vos leviers du jour.
+                Journée de récupération : elle fait partie du programme. Marche, sommeil et alimentation
+                restent vos leviers du jour.
               </p>
             </div>
           </Carte>
