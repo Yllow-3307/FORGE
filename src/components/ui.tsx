@@ -11,7 +11,6 @@
 
 import { motion, type HTMLMotionProps } from "framer-motion";
 import type { ReactNode } from "react";
-import { useCoarsePointer, useSurvolCarte } from "@/hooks/useCoarsePointer";
 
 export const cx = (...c: (string | false | null | undefined)[]) =>
   c.filter(Boolean).join(" ");
