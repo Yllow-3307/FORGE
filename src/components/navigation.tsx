@@ -97,6 +97,7 @@ export function Navigation() {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape" && menuOuvert) {
         setMenuOuvert(false);
+        boutonPlusRef.current?.focus();
       }
     };
     window.addEventListener("keydown", handleEscape);
@@ -108,8 +109,6 @@ export function Navigation() {
       setTimeout(() => {
         premierLienRef.current?.focus();
       }, 50);
-    } else if (boutonPlusRef.current) {
-      // focus retour géré dans onClick du bouton pour fiabilité
     }
   }, [menuOuvert]);
 
@@ -247,7 +246,7 @@ export function Navigation() {
                           ? "bg-[var(--accent-soft)] font-medium text-[var(--accent)]"
                           : "text-muted hover:bg-[var(--surface-2)]",
                       )}
-                      ref={index === 0 ? (el) => el?.focus() : undefined}
+                      ref={index === 0 ? premierLienRef : undefined}
                     >
                       <Icone
                         size={18}
