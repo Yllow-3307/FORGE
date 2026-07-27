@@ -1,20 +1,22 @@
 "use client";
 
 /**
- * profil/page.tsx — Questionnaire en cinq étapes.
+ * profil/page.tsx — Questionnaire en six étapes.
  *
  * Les 18 paramètres du moteur, regroupés par thème pour éviter le formulaire
  * fleuve. La validation est faite à chaque étape : on ne laisse pas
  * l'utilisateur arriver au bout pour lui annoncer une erreur du début.
+ * La sixième étape est un récapitulatif en lecture seule : tout se relit d'un
+ * coup d'œil et chaque groupe renvoie directement à l'étape à corriger.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  Bouton, Carte, Champ, Choix, Curseur, Encart, Liste, Puces, Saisie, cx,
+  Bouton, Carte, Champ, Choix, Curseur, Encart, Liste, Pastille, Puces, Saisie, cx,
 } from "@/components/ui";
-import { valider } from "@/lib/moteur/noyau";
+import { cap, valider } from "@/lib/moteur/noyau";
 import { genererProgramme } from "@/lib/moteur";
 import type { Programme } from "@/lib/moteur";
 import {
@@ -26,7 +28,7 @@ import { majReglages } from "@/lib/suivi";
 import { useToast } from "@/components/toast";
 import { Felicitations } from "@/components/felicitations";
 
-const ETAPES = ["Vous", "Objectif", "Matériel", "Agenda", "Cuisine"] as const;
+const ETAPES = ["Vous", "Objectif", "Matériel", "Agenda", "Cuisine", "Récap"] as const;
 
 const OPTIONS_OBJECTIF = [
   { valeur: "perte_de_gras", libelle: "Perdre du gras", description: "Déficit maîtrisé, muscle préservé", icone: "🔥" },
@@ -91,6 +93,93 @@ const OPTIONS_CONTRAINTES: { valeur: ContrainteAlimentaire; libelle: string }[] 
   { valeur: "faible_appetit_matin", libelle: "Peu d'appétit le matin" },
 ];
 
+/* --------------------------------------------------------------------------
+   Récapitulatif : libellés et briques d'affichage (lecture seule)
+   -------------------------------------------------------------------------- */
+
+const LIBELLES_SEXE: Record<Profil["sexe"], string> = {
+  homme: "Homme",
+  femme: "Femme",
+  autre: "Autre ou non précisé",
+};
+
+const LIBELLES_CUISINE: Record<Profil["niveauCuisine"], string> = {
+  nul: "Nul — aucune cuisson",
+  debutant: "Débutant — recettes simples",
+  moyen: "Moyen — à l'aise au quotidien",
+  bon: "Bon — je varie les techniques",
+  chef: "Très à l'aise",
+};
+
+const LIBELLES_LIEU_REPAS: Record<Profil["lieuRepas"], string> = {
+  domicile: "À domicile",
+  bureau_micro_ondes: "Au bureau, avec micro-ondes",
+  bureau_sans_cuisine: "Au bureau, sans réchauffage",
+  restaurant_cantine: "Restaurant ou cantine",
+  exterieur_nomade: "En déplacement",
+  mixte: "Cela varie",
+};
+
+/** Retrouve le libellé lisible d'une valeur technique dans une liste d'options. */
+function libelleParmi(
+  options: readonly { valeur: string; libelle: string }[],
+  valeur: string,
+): string {
+  return options.find((o) => o.valeur === valeur)?.libelle ?? valeur.replace(/_/g, " ");
+}
+
+/** Jamais de `true` / `false` à l'écran. */
+const ouiNon = (v: boolean) => (v ? "Oui" : "Non");
+
+/** Un groupe du récapitulatif : en-tête cliquable + liste de définitions. */
+function GroupeRecap({
+  titre, onModifier, premier = false, children,
+}: {
+  titre: string;
+  onModifier: () => void;
+  premier?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <section className={cx(!premier && "mt-4 border-t border-[var(--border)] pt-4")}>
+      <button
+        type="button"
+        onClick={onModifier}
+        aria-label={`Modifier l'étape ${titre}`}
+        className="flex min-h-11 w-full items-center justify-between gap-3 text-left"
+      >
+        <span className="text-sm font-semibold uppercase tracking-wider text-faint">
+          {titre}
+        </span>
+        <span className="text-xs text-[var(--accent)]">Modifier</span>
+      </button>
+      <dl className="grid grid-cols-1 gap-x-6 gap-y-1.5 sm:grid-cols-2">{children}</dl>
+    </section>
+  );
+}
+
+/** Une ligne libellé / valeur du récapitulatif. */
+function LigneRecap({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <>
+      <dt className="text-sm text-muted">{label}</dt>
+      <dd className="text-sm font-medium tnum">{children}</dd>
+    </>
+  );
+}
+
+/** Valeurs multiples en pastilles, avec un repli explicite quand la liste est vide. */
+function PastillesRecap({ valeurs, vide }: { valeurs: string[]; vide: string }) {
+  if (valeurs.length === 0) return <span className="font-normal text-muted">{vide}</span>;
+  return (
+    <span className="flex flex-wrap gap-1.5">
+      {valeurs.map((v) => (
+        <Pastille key={v}>{v}</Pastille>
+      ))}
+    </span>
+  );
+}
+
 export default function PageProfil() {
   const router = useRouter();
   const { toast } = useToast();
@@ -140,6 +229,8 @@ export default function PageProfil() {
       2: [],
       3: ["heureCoucher", "seancesParSemaine"],
       4: ["tempsCuisine"],
+      // Récapitulatif : rien à valider ici, `terminer()` repasse sur valider(p).
+      5: [],
     };
     const champs = parEtape[etape] ?? [];
     const concernees = tous.filter((e) => champs.includes(e.champ));
@@ -208,7 +299,7 @@ export default function PageProfil() {
             />
             <span
               className={cx(
-                "truncate text-[0.68rem] font-medium",
+                "truncate text-[0.62rem] font-medium sm:text-[0.68rem]",
                 i === etape ? "text-[var(--accent)]" : "text-faint",
               )}
             >
@@ -565,6 +656,145 @@ export default function PageProfil() {
                   )}
                 </div>
               )}
+            </Carte>
+          )}
+
+          {/* =========================== ÉTAPE 5 ========================== */}
+          {etape === 5 && (
+            <Carte className="space-y-5 p-5 sm:p-8">
+              <div>
+                <h1 className="text-xl font-bold">Vérifiez avant de lancer</h1>
+                <p className="mt-1 text-sm text-muted">
+                  Un seul coup d&apos;œil : tout ce que FORGE utilisera pour calculer votre
+                  programme.
+                </p>
+              </div>
+
+              <div>
+                {/* ----------------------- Vous ----------------------- */}
+                <GroupeRecap titre={ETAPES[0]} onModifier={() => setEtape(0)} premier>
+                  <LigneRecap label="Prénom ou pseudo">
+                    {p.nom.trim() || <span className="font-normal text-muted">Non renseigné</span>}
+                  </LigneRecap>
+                  <LigneRecap label="Âge">{p.age} ans</LigneRecap>
+                  <LigneRecap label="Sexe">{LIBELLES_SEXE[p.sexe]}</LigneRecap>
+                  <LigneRecap label="Taille">{p.taille} cm</LigneRecap>
+                  <LigneRecap label="Poids">{p.poids} kg</LigneRecap>
+                  {typeof p.pourcentageGras === "number" && (
+                    <LigneRecap label="Masse grasse">{p.pourcentageGras} %</LigneRecap>
+                  )}
+                  {typeof p.fcRepos === "number" && (
+                    <LigneRecap label="FC de repos">{p.fcRepos} bpm</LigneRecap>
+                  )}
+                  <LigneRecap label="Zones sensibles">
+                    <PastillesRecap
+                      valeurs={p.blessures.map((b) => libelleParmi(OPTIONS_BLESSURES, b))}
+                      vide="Aucune blessure signalée"
+                    />
+                  </LigneRecap>
+                </GroupeRecap>
+
+                {/* --------------------- Objectif --------------------- */}
+                <GroupeRecap titre={ETAPES[1]} onModifier={() => setEtape(1)}>
+                  <LigneRecap label="Objectif principal">
+                    {libelleParmi(OPTIONS_OBJECTIF, p.objectif)}
+                  </LigneRecap>
+                  <LigneRecap label="Niveau sportif">
+                    {libelleParmi(OPTIONS_NIVEAU, p.niveauSportif)}
+                  </LigneRecap>
+                  <LigneRecap label="Durée du cycle">{p.dureeCycle} semaines</LigneRecap>
+                </GroupeRecap>
+
+                {/* --------------------- Matériel --------------------- */}
+                <GroupeRecap titre={ETAPES[2]} onModifier={() => setEtape(2)}>
+                  <LigneRecap label="Équipements disponibles">
+                    <PastillesRecap
+                      valeurs={p.equipement
+                        .filter((e) => e !== "aucun")
+                        .map((e) => libelleParmi(OPTIONS_EQUIPEMENT, e))}
+                      vide="Aucun matériel — programme au poids du corps"
+                    />
+                  </LigneRecap>
+                </GroupeRecap>
+
+                {/* ---------------------- Agenda ---------------------- */}
+                <GroupeRecap titre={ETAPES[3]} onModifier={() => setEtape(3)}>
+                  <LigneRecap label="Réveil">{p.heureReveil}</LigneRecap>
+                  <LigneRecap label="Coucher">{p.heureCoucher}</LigneRecap>
+                  <LigneRecap label="Début du travail">{p.heureDebutTravail}</LigneRecap>
+                  <LigneRecap label="Fin du travail">{p.heureFinTravail}</LigneRecap>
+                  <LigneRecap label="Trajet quotidien">{p.trajetQuotidien} min</LigneRecap>
+                  <LigneRecap label="Séances par semaine">
+                    {p.seancesParSemaine} séances
+                  </LigneRecap>
+                  {apercu && (
+                    <>
+                      <LigneRecap label="Durée de séance estimée">
+                        {apercu.synthese.dureeSeanceForce} min
+                      </LigneRecap>
+                      <LigneRecap label="Sommeil suffisant">
+                        {ouiNon(apercu.derive.sommeilSuffisant)}
+                      </LigneRecap>
+                    </>
+                  )}
+                  <LigneRecap label="Jours travaillés">
+                    <PastillesRecap
+                      valeurs={p.joursTravailles.map((j) => cap(j.slice(0, 3)))}
+                      vide="Aucun jour travaillé"
+                    />
+                  </LigneRecap>
+                  <LigneRecap label="Jours entièrement libres">
+                    <PastillesRecap
+                      valeurs={JOURS.filter((j) => !p.joursTravailles.includes(j))
+                        .map((j) => cap(j.slice(0, 3)))}
+                      vide="Aucun — vous travaillez tous les jours"
+                    />
+                  </LigneRecap>
+                  <LigneRecap label="Plages d'indisponibilité">
+                    {p.indisponibilites.length === 0 ? (
+                      <span className="font-normal text-muted">Aucune plage</span>
+                    ) : (
+                      <span className="flex flex-col gap-0.5">
+                        {p.indisponibilites.map((ind, i) => (
+                          <span key={i}>
+                            {ind.debut} – {ind.fin}
+                            {" · "}
+                            {ind.jours.length === 0
+                              ? "aucun jour"
+                              : ind.jours.map((j) => j.slice(0, 3)).join(", ")}
+                            {ind.motif.trim() && ` · ${ind.motif.trim()}`}
+                          </span>
+                        ))}
+                      </span>
+                    )}
+                  </LigneRecap>
+                </GroupeRecap>
+
+                {/* ---------------------- Cuisine --------------------- */}
+                <GroupeRecap titre={ETAPES[4]} onModifier={() => setEtape(4)}>
+                  <LigneRecap label="Niveau en cuisine">
+                    {LIBELLES_CUISINE[p.niveauCuisine]}
+                  </LigneRecap>
+                  <LigneRecap label="Temps quotidien pour les repas">
+                    {p.tempsCuisine} min
+                  </LigneRecap>
+                  <LigneRecap label="Déjeuner en semaine">
+                    {LIBELLES_LIEU_REPAS[p.lieuRepas]}
+                  </LigneRecap>
+                  {apercu && (
+                    <LigneRecap label="Batch cooking conseillé">
+                      {ouiNon(apercu.nutrition.pratique.batchCooking)}
+                    </LigneRecap>
+                  )}
+                  <LigneRecap label="Contraintes alimentaires">
+                    <PastillesRecap
+                      valeurs={p.contraintesAlimentaires.map((c) =>
+                        libelleParmi(OPTIONS_CONTRAINTES, c))}
+                      vide="Aucune contrainte"
+                    />
+                  </LigneRecap>
+                </GroupeRecap>
+              </div>
             </Carte>
           )}
         </motion.div>
