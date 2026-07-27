@@ -11,7 +11,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bouton, Carte, Encart, GrandChiffre, Pastille, Vide, cx } from "@/components/ui";
+import { Bouton, Carte, Encart, GrandChiffre, Pastille, Squelette, Vide, cx } from "@/components/ui";
 import { useApp } from "@/lib/useApp";
 import { cap } from "@/lib/moteur/noyau";
 import { JOURS, type Jour, type Seance } from "@/lib/moteur/types";
@@ -77,11 +77,12 @@ export default function PageProgramme() {
 
   if (chargement) {
     return (
-      <div className="grid min-h-[60dvh] place-items-center">
-        <div
-          role="status" aria-label="Chargement en cours"
-          className="h-9 w-9 animate-spin rounded-full border-2 border-[var(--border-strong)] border-t-[var(--accent)]"
-        />
+      <div role="status" aria-busy="true" className="space-y-4">
+        <span className="sr-only">Chargement…</span>
+        <Squelette className="h-8 w-2/3" />
+        {Array.from({ length: 7 }).map((_, i) => (
+          <Squelette key={i} className="h-14" />
+        ))}
       </div>
     );
   }

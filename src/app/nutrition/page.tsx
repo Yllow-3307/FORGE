@@ -10,7 +10,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bouton, Carte, Pastille, Saisie, Vide, cx } from "@/components/ui";
+import { Bouton, Carte, Pastille, Saisie, Squelette, Vide, cx } from "@/components/ui";
 import { Anneau } from "@/components/widgets";
 import { Bouteille } from "@/components/bouteille";
 import { useApp } from "@/lib/useApp";
@@ -77,11 +77,14 @@ export default function PageNutrition() {
 
   if (chargement) {
     return (
-      <div className="grid min-h-[60dvh] place-items-center">
-        <div
-          role="status" aria-label="Chargement en cours"
-          className="h-9 w-9 animate-spin rounded-full border-2 border-[var(--border-strong)] border-t-[var(--accent)]"
-        />
+      <div role="status" aria-busy="true" className="space-y-6">
+        <span className="sr-only">Chargement…</span>
+        <div className="flex justify-center">
+          <Squelette className="h-32 w-32 rounded-full" />
+        </div>
+        <Squelette className="h-16" />
+        <Squelette className="h-16" />
+        <Squelette className="h-16" />
       </div>
     );
   }

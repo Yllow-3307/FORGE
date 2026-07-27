@@ -13,7 +13,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bouton, Carte, Pastille, Vide, cx } from "@/components/ui";
+import { Bouton, Carte, Pastille, Squelette, Vide, cx } from "@/components/ui";
 import { CercleMinuteur, useMinuteur } from "@/components/minuteur";
 import { useApp } from "@/lib/useApp";
 import { majJour, aujourdhui } from "@/lib/suivi";
@@ -138,11 +138,12 @@ export default function PageSeance() {
 
   if (chargement) {
     return (
-      <div className="grid min-h-[60dvh] place-items-center">
-        <div
-          role="status" aria-label="Chargement en cours"
-          className="h-9 w-9 animate-spin rounded-full border-2 border-[var(--border-strong)] border-t-[var(--accent)]"
-        />
+      <div role="status" aria-busy="true" className="space-y-4">
+        <span className="sr-only">Chargement…</span>
+        <Squelette className="h-8 w-2/3" />
+        <Squelette className="h-24" />
+        <Squelette className="h-24" />
+        <Squelette className="h-24" />
       </div>
     );
   }
