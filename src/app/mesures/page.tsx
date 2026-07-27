@@ -140,9 +140,21 @@ export default function PageMesures() {
     return (
       <Carte>
         <Vide
-          icone="⚖️" titre="Aucun profil"
-          texte="Créez votre profil pour enregistrer vos mesures."
+          icone="⚖️" titre="Suivez votre évolution"
+          texte="Pesées, tendance sur 7 jours, écart à l'objectif : la courbe dit ce que la balance seule ne dit pas."
+          apercu={
+            <svg aria-hidden viewBox="0 0 200 60" className="mx-auto h-14 w-full max-w-xs">
+              <path
+                d="M4 12 C 40 14, 55 30, 80 32 S 120 46, 145 44 S 180 54, 196 56"
+                stroke="var(--accent)"
+                strokeWidth={2}
+                fill="none"
+                strokeLinecap="round"
+              />
+            </svg>
+          }
           action={<Link href="/profil"><Bouton>Créer mon profil</Bouton></Link>}
+          secondaire={<Link href="/" className="text-sm text-muted underline underline-offset-4">Retour à l&apos;accueil</Link>}
         />
       </Carte>
     );

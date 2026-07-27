@@ -152,9 +152,17 @@ export default function PageSeance() {
     return (
       <Carte>
         <Vide
-          icone="⚒️" titre="Aucun programme"
-          texte="Créez d'abord votre profil pour générer un programme."
+          icone="⚒️" titre="Votre salle personnelle"
+          texte="FORGE compose vos séances à partir de votre matériel, de votre agenda réel et de votre niveau. Aucune séance générique : chaque bloc est calculé."
+          apercu={
+            <div aria-hidden className="flex flex-wrap items-center justify-center gap-2">
+              <Pastille>Force</Pastille>
+              <Pastille>Endurance</Pastille>
+              <Pastille>Mobilité</Pastille>
+            </div>
+          }
           action={<Link href="/profil"><Bouton>Créer mon profil</Bouton></Link>}
+          secondaire={<Link href="/" className="text-sm text-muted underline underline-offset-4">Retour à l&apos;accueil</Link>}
         />
       </Carte>
     );

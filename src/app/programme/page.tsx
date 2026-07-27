@@ -91,9 +91,33 @@ export default function PageProgramme() {
     return (
       <Carte>
         <Vide
-          icone="⚒️" titre="Aucun programme"
-          texte="Créez votre profil pour générer un cycle complet."
+          icone="📆" titre="Un cycle complet vous attend"
+          texte="Quatre à douze semaines structurées : montée en charge, semaine de décharge, pics de forme. Le calendrier s'adapte à vos jours disponibles."
+          apercu={
+            <div aria-hidden className="grid grid-cols-7 gap-1.5">
+              {[
+                { jour: "L", effort: true },
+                { jour: "M", effort: true },
+                { jour: "M", effort: false },
+                { jour: "J", effort: true },
+                { jour: "V", effort: true },
+                { jour: "S", effort: false },
+                { jour: "D", effort: false },
+              ].map((j, i) => (
+                <div
+                  key={i}
+                  className={cx(
+                    "rounded-2xl py-3 text-center text-xs font-medium",
+                    j.effort ? "bg-[var(--accent-soft)]" : "bg-[var(--surface-2)]",
+                  )}
+                >
+                  {j.jour}
+                </div>
+              ))}
+            </div>
+          }
           action={<Link href="/profil"><Bouton>Créer mon profil</Bouton></Link>}
+          secondaire={<Link href="/" className="text-sm text-muted underline underline-offset-4">Retour à l&apos;accueil</Link>}
         />
       </Carte>
     );
