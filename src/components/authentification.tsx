@@ -1,14 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bouton, Carte, Champ, Encart, Saisie, cx } from "@/components/ui";
+import { Bouton, Carte, Champ, Encart, Saisie } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
-import { LogoForge } from "@/components/logo";
+import { MarqueForge } from "@/components/logo";
+import { useToast } from "@/components/toast";
 
-type Mode = "connexion" | "inscription" | "oubli";
+type Mode = "connexion" | "inscription" | "oubli" | "magique";
+
+/** Cadre sans navigation réservé à l'authentification dédiée. */
+function EcranAuthentification({ children }: { children: ReactNode }) {
+  return (
+    <section className="flex min-h-[100dvh] w-full flex-col px-4 py-6 sm:px-6 sm:py-8">
+      <header className="flex justify-center">
+        <Link
+          href="/"
+          aria-label="FORGE — revenir à l'accueil"
+          className="rounded-pill px-3 py-2"
+        >
+          <MarqueForge taille={42} />
+        </Link>
+      </header>
+      <div className="flex flex-1 items-center justify-center py-8 sm:py-10">
+        {children}
+      </div>
+    </section>
+  );
+}
 
 export function BlocCompteLocal() {
   return (
@@ -17,18 +38,18 @@ export function BlocCompteLocal() {
         <span className="text-3xl">📴</span>
         <h1 className="mt-3 text-xl font-bold">Aucun compte nécessaire</h1>
         <p className="mt-2 text-sm leading-relaxed text-muted text-pretty">
-          L&apos;application fonctionne sans inscription : votre profil, vos séances et
-          vos mesures sont enregistrés directement sur cet appareil. Rien ne transite
+          L&apos;application fonctionne sans inscription : ton profil, tes séances et
+          tes mesures sont enregistrés directement sur cet appareil. Rien ne transite
           par un serveur.
         </p>
 
         <div className="mt-5 space-y-3">
-          <Encart titre="Sauvegarder vos données">
-            Depuis les paramètres, exportez régulièrement votre historique au format
-            JSON : c&apos;est votre seule copie de sauvegarde en mode local.
+          <Encart titre="Sauvegarder tes données">
+            Depuis les paramètres, exporte régulièrement ton historique au format JSON :
+            c&apos;est ta seule copie de sauvegarde en mode local.
           </Encart>
           <Encart ton="warn" titre="Activer la synchronisation">
-            Pour retrouver vos données sur plusieurs appareils, renseignez les clés
+            Pour retrouver tes données sur plusieurs appareils, renseigne les clés
             Supabase dans le fichier <code>.env.local</code>. La marche à suivre figure
             dans le README du projet.
           </Encart>
@@ -43,11 +64,22 @@ export function BlocCompteLocal() {
   );
 }
 
-export function BlocAuthentification() {
+/**
+ * Carte de connexion. Par défaut, elle s'affiche dans l'écran immersif de
+ * `/connexion`; les paramètres l'emploient en version compacte.
+ */
+export function BlocAuthentification({
+  immersif = true,
+  onConnexionDemarree,
+}: {
+  immersif?: boolean;
+  onConnexionDemarree?: () => void;
+}) {
   const router = useRouter();
+  const { toast } = useToast();
   const {
     utilisateur, authDisponible, connexion, inscription, lienMagique,
-    motDePasseOublie, deconnexion,
+    connexionGoogle, motDePasseOublie, deconnexion,
   } = useAuth();
 
   const [mode, setMode] = useState<Mode>("connexion");
@@ -56,63 +88,96 @@ export function BlocAuthentification() {
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState("");
   const [succes, setSucces] = useState("");
+  const [sortie, setSortie] = useState(false);
+  const minuteurRedirection = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const soumettre = async (e: React.FormEvent) => {
+  useEffect(() => () => {
+    if (minuteurRedirection.current) clearTimeout(minuteurRedirection.current);
+  }, []);
+
+  const changerMode = (suivant: Mode) => {
+    setMode(suivant);
+    setErreur("");
+    setSucces("");
+  };
+
+  /** Laisse la carte s'effacer avant de rejoindre le tableau de bord. */
+  const terminerConnexion = () => {
+    setSortie(true);
+    minuteurRedirection.current = setTimeout(() => {
+      toast("Bienvenue 👋");
+      router.push("/");
+    }, 260);
+  };
+
+  const soumettre = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setErreur("");
     setSucces("");
     setEnvoi(true);
+    if (mode === "connexion" || mode === "inscription") onConnexionDemarree?.();
 
     if (mode === "connexion") {
       const { erreur: err } = await connexion(email, motDePasse);
       if (err) setErreur(err);
-      else router.push("/");
+      else terminerConnexion();
     } else if (mode === "inscription") {
       const { erreur: err, confirmation } = await inscription(email, motDePasse);
       if (err) setErreur(err);
       else if (confirmation) {
-        setSucces("Compte créé. Confirmez votre adresse via le lien reçu par e-mail.");
-      } else router.push("/");
+        setSucces("Compte créé. Confirme ton adresse via le lien reçu par e-mail.");
+      } else {
+        terminerConnexion();
+      }
+    } else if (mode === "magique") {
+      const { erreur: err } = await lienMagique(email);
+      if (err) setErreur(err);
+      else setSucces("Lien de connexion envoyé : consulte ta boîte de réception.");
     } else {
       const { erreur: err } = await motDePasseOublie(email);
       if (err) setErreur(err);
       else setSucces("Si un compte existe, un lien de réinitialisation vient d'être envoyé.");
     }
+
     setEnvoi(false);
   };
 
-  const envoyerLien = async () => {
-    if (!email) {
-      setErreur("Renseignez votre adresse e-mail.");
+  const continuerAvecGoogle = async () => {
+    setErreur("");
+    setSucces("");
+    setEnvoi(true);
+    onConnexionDemarree?.();
+    const { erreur: err } = await connexionGoogle();
+    if (err) {
+      setErreur(err);
+      setEnvoi(false);
       return;
     }
-    setEnvoi(true);
-    setErreur("");
-    const { erreur: err } = await lienMagique(email);
-    if (err) setErreur(err);
-    else setSucces("Lien de connexion envoyé : consultez votre boîte de réception.");
-    setEnvoi(false);
+    // Supabase redirige immédiatement vers Google. Ce message reste utile si
+    // le navigateur prend quelques instants avant de quitter la page.
+    setSucces("Redirection vers Google…");
   };
 
   if (!authDisponible) {
-    return <BlocCompteLocal />;
+    const compteLocal = <BlocCompteLocal />;
+    return immersif ? <EcranAuthentification>{compteLocal}</EcranAuthentification> : compteLocal;
   }
 
-  if (utilisateur) {
-    return (
-      <div className="mx-auto max-w-lg space-y-4">
-        <Carte className="p-5 sm:p-8">
-          <span className="text-3xl">✅</span>
-          <h1 className="mt-3 text-xl font-bold">Vous êtes connecté</h1>
+  if (utilisateur && !sortie) {
+    const compteConnecte = (
+      <div className="mx-auto w-full max-w-[26.25rem]">
+        <Carte fort className="p-6 sm:p-8">
+          <p className="etiquette">Compte FORGE</p>
+          <h1 className="mt-2 text-2xl font-bold">Tu es connecté</h1>
           <p className="mt-2 text-sm text-muted">{utilisateur.email}</p>
-          <p className="mt-2 text-sm text-muted text-pretty">
-            Vos données sont synchronisées : vous les retrouverez sur tous vos appareils.
-          </p>
+          <Encart titre="Synchronisation active" ton="info">
+            Tes données sont prêtes à te suivre sur tous tes appareils.
+          </Encart>
           <div className="mt-5 flex flex-wrap gap-3">
-            <Link href="/"><Bouton>Aller au tableau de bord</Bouton></Link>
+            <Bouton onClick={() => router.push("/")}>Aller à l&apos;accueil</Bouton>
             <Bouton
               variante="fantome"
-              onClick={async () => { await deconnexion(); router.push("/parametres#compte"); }}
+              onClick={async () => { await deconnexion(); router.push("/connexion"); }}
             >
               Se déconnecter
             </Bouton>
@@ -120,139 +185,188 @@ export function BlocAuthentification() {
         </Carte>
       </div>
     );
+    return immersif ? <EcranAuthentification>{compteConnecte}</EcranAuthentification> : compteConnecte;
   }
 
   const titres: Record<Mode, string> = {
-    connexion: "Connexion",
-    inscription: "Créer un compte",
-    oubli: "Mot de passe oublié",
+    connexion: "Content de te revoir",
+    inscription: "Construis ton espace",
+    oubli: "Réinitialise ton mot de passe",
+    magique: "Reçois ton lien magique",
   };
+  const sousTitres: Record<Mode, string> = {
+    connexion: "Retrouve tes données et ton programme.",
+    inscription: "Garde ton programme avec toi, sur tous tes appareils.",
+    oubli: "On t'envoie un lien pour choisir un nouveau mot de passe.",
+    magique: "Sans mot de passe : un lien suffit pour te connecter.",
+  };
+  const emailSeul = mode === "oubli" || mode === "magique";
 
-  return (
-    <div className="mx-auto max-w-lg space-y-4">
-      <Carte className="p-5 sm:p-8">
-        <div className="mb-5 flex items-center gap-3">
-          <LogoForge taille={44} className="rounded-2xl" />
-          <div>
-            <h1 className="text-xl font-bold">{titres[mode]}</h1>
-            <p className="text-xs text-muted">
-              Synchronisez vos données entre vos appareils.
-            </p>
-          </div>
-        </div>
+  const carte = (
+    <div className="mx-auto w-full max-w-[26.25rem]">
+      <AnimatePresence initial={false} mode="wait">
+        {!sortie && (
+          <motion.div
+            key="carte-authentification"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <Carte fort className="p-5 sm:p-7">
+              <div className="text-center">
+                <p className="etiquette">Compte FORGE</p>
+                <h1 className="mt-2 text-2xl font-bold text-ink">{titres[mode]}</h1>
+                <p className="mt-2 text-sm leading-relaxed text-muted text-pretty">
+                  {sousTitres[mode]}
+                </p>
+              </div>
 
-        {mode !== "oubli" && (
-          <div className="mb-5 flex gap-1 rounded-pill bg-[var(--surface-2)] p-1">
-            {(["connexion", "inscription"] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => { setMode(m); setErreur(""); setSucces(""); }}
-                className={cx(
-                  "flex-1 rounded-pill px-4 py-2 text-sm font-medium transition",
-                  mode === m
-                    ? "bg-[var(--accent)] text-[var(--accent-contrast)]"
-                    : "text-muted hover:text-ink",
-                )}
-              >
-                {m === "connexion" ? "Se connecter" : "S'inscrire"}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <form onSubmit={soumettre} className="space-y-4">
-          <Champ label="Adresse e-mail" obligatoire>
-            <Saisie
-              type="email" required autoComplete="email" value={email}
-              onChange={(e) => setEmail(e.target.value)} placeholder="vous@exemple.fr"
-            />
-          </Champ>
-
-          <AnimatePresence initial={false}>
-            {mode !== "oubli" && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="overflow-hidden"
-              >
-                <Champ
-                  label="Mot de passe"
-                  obligatoire
-                  aide={mode === "inscription" ? "8 caractères minimum" : undefined}
+              {!emailSeul && (
+                <div
+                  role="tablist"
+                  aria-label="Choisir une action de compte"
+                  className="mt-6 grid grid-cols-2 gap-2"
                 >
+                  {(["connexion", "inscription"] as const).map((onglet) => (
+                    <Bouton
+                      key={onglet}
+                      type="button"
+                      variante={mode === onglet ? "principal" : "fantome"}
+                      taille="sm"
+                      pleineLargeur
+                      role="tab"
+                      aria-selected={mode === onglet}
+                      onClick={() => changerMode(onglet)}
+                    >
+                      {onglet === "connexion" ? "Connexion" : "Inscription"}
+                    </Bouton>
+                  ))}
+                </div>
+              )}
+
+              <form onSubmit={soumettre} className="mt-6 space-y-4">
+                <Champ label="Adresse e-mail" obligatoire>
                   <Saisie
-                    type="password" required minLength={mode === "inscription" ? 8 : undefined}
-                    autoComplete={mode === "inscription" ? "new-password" : "current-password"}
-                    value={motDePasse} onChange={(e) => setMotDePasse(e.target.value)}
-                    placeholder="••••••••"
+                    type="email"
+                    required
+                    autoComplete="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="toi@exemple.fr"
                   />
                 </Champ>
-              </motion.div>
-            )}
-          </AnimatePresence>
 
-          {erreur && (
-            <p role="alert" className="rounded-2xl bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]">
-              {erreur}
-            </p>
-          )}
-          {succes && (
-            <p role="status" className="rounded-2xl bg-[var(--accent-soft)] px-4 py-3 text-sm text-[var(--accent)]">
-              {succes}
-            </p>
-          )}
+                {!emailSeul && (
+                  <Champ
+                    label="Mot de passe"
+                    obligatoire
+                    aide={mode === "inscription" ? "8 caractères minimum" : undefined}
+                  >
+                    <Saisie
+                      type="password"
+                      required
+                      minLength={mode === "inscription" ? 8 : undefined}
+                      autoComplete={mode === "inscription" ? "new-password" : "current-password"}
+                      value={motDePasse}
+                      onChange={(e) => setMotDePasse(e.target.value)}
+                      placeholder="••••••••"
+                    />
+                  </Champ>
+                )}
 
-          <Bouton type="submit" pleineLargeur disabled={envoi}>
-            {envoi
-              ? "Envoi…"
-              : mode === "connexion" ? "Se connecter"
-                : mode === "inscription" ? "Créer mon compte"
-                  : "Envoyer le lien"}
-          </Bouton>
-        </form>
+                <div aria-live="assertive" aria-atomic="true">
+                  {erreur && (
+                    <Encart ton="danger" titre="Impossible de continuer">
+                      {erreur}
+                    </Encart>
+                  )}
+                </div>
+                <div aria-live="polite" aria-atomic="true">
+                  {succes && <Encart titre="C&apos;est envoyé">{succes}</Encart>}
+                </div>
 
-        <div className="mt-4 space-y-2 text-center text-sm">
-          {mode === "connexion" && (
-            <>
-              <button
-                onClick={envoyerLien}
-                disabled={envoi}
-                className="text-[var(--accent)] underline underline-offset-2"
-              >
-                Recevoir un lien de connexion par e-mail
-              </button>
-              <p>
-                <button
-                  onClick={() => { setMode("oubli"); setErreur(""); setSucces(""); }}
-                  className="text-muted underline underline-offset-2"
-                >
-                  Mot de passe oublié ?
-                </button>
-              </p>
-            </>
-          )}
-          {mode === "oubli" && (
-            <button
-              onClick={() => { setMode("connexion"); setErreur(""); setSucces(""); }}
-              className="text-muted underline underline-offset-2"
-            >
-              Revenir à la connexion
-            </button>
-          )}
-        </div>
-      </Carte>
+                <Bouton type="submit" pleineLargeur disabled={envoi}>
+                  {envoi
+                    ? "Envoi…"
+                    : mode === "connexion" ? "Se connecter"
+                      : mode === "inscription" ? "Créer mon compte"
+                        : mode === "magique" ? "Envoyer le lien magique"
+                          : "Envoyer le lien"}
+                </Bouton>
+              </form>
 
-      <Carte className="p-4 sm:p-5">
-        <p className="text-sm text-muted text-pretty">
-          Vous pouvez aussi utiliser l&apos;application <strong>sans compte</strong> :
-          vos données restent alors sur cet appareil.{" "}
-          <Link href="/" className="font-medium text-[var(--accent)] underline">
+              {mode === "connexion" && (
+                <div className="mt-3 flex justify-end">
+                  <Bouton
+                    type="button"
+                    variante="fantome"
+                    taille="sm"
+                    onClick={() => changerMode("oubli")}
+                  >
+                    Mot de passe oublié ?
+                  </Bouton>
+                </div>
+              )}
+
+              {!emailSeul && (
+                <div className="mt-6 space-y-3">
+                  <div className="flex items-center gap-3 text-xs text-faint" aria-hidden="true">
+                    <span className="h-px flex-1 bg-[var(--border)]" />
+                    <span>— ou —</span>
+                    <span className="h-px flex-1 bg-[var(--border)]" />
+                  </div>
+                  <Bouton
+                    type="button"
+                    variante="doux"
+                    pleineLargeur
+                    disabled={envoi}
+                    onClick={() => changerMode("magique")}
+                  >
+                    📩 Recevoir un lien magique
+                  </Bouton>
+                  <Bouton
+                    type="button"
+                    variante="fantome"
+                    pleineLargeur
+                    disabled={envoi}
+                    onClick={continuerAvecGoogle}
+                  >
+                    Continuer avec Google
+                  </Bouton>
+                  <Bouton type="button" variante="fantome" pleineLargeur disabled>
+                    Continuer avec Apple — bientôt
+                  </Bouton>
+                </div>
+              )}
+
+              {emailSeul && (
+                <div className="mt-5 text-center">
+                  <Bouton
+                    type="button"
+                    variante="fantome"
+                    taille="sm"
+                    onClick={() => changerMode("connexion")}
+                  >
+                    Revenir à la connexion
+                  </Bouton>
+                </div>
+              )}
+            </Carte>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {!sortie && (
+        <p className="mt-5 text-center text-sm leading-relaxed text-muted text-pretty">
+          Tu peux aussi utiliser FORGE sans compte. Tes données restent alors sur cet appareil. {" "}
+          <Link href="/" className="font-medium text-[var(--accent)] underline underline-offset-2">
             Continuer sans compte
           </Link>
         </p>
-      </Carte>
+      )}
     </div>
   );
+
+  return immersif ? <EcranAuthentification>{carte}</EcranAuthentification> : carte;
 }

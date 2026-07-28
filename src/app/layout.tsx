@@ -1,8 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import { ThemeProvider } from "@/components/theme";
-import { Navigation } from "@/components/navigation";
-import { GestionPWA } from "@/components/pwa";
+import { CadreApplication } from "@/components/cadre-application";
 import { FournisseurAuth } from "@/lib/auth";
 import { FournisseurToast } from "@/components/toast";
 import "./globals.css";
@@ -76,20 +75,7 @@ export default function RootLayout({
         <FournisseurAuth>
           <ThemeProvider>
             <FournisseurToast>
-              <Navigation />
-              {/* pb-28 : dégage la barre de navigation mobile fixée en bas.
-                  Les marges « safe-area » évitent l'encoche et la barre
-                  gestuelle sur iPhone en mode installé. */}
-              <main
-                className="mx-auto w-full max-w-6xl px-3 pb-24 pt-3 sm:px-6 sm:pt-6 md:pb-16"
-                style={{
-                  paddingLeft: "max(0.75rem, env(safe-area-inset-left))",
-                  paddingRight: "max(0.75rem, env(safe-area-inset-right))",
-                }}
-              >
-                {children}
-              </main>
-              <GestionPWA />
+              <CadreApplication>{children}</CadreApplication>
             </FournisseurToast>
           </ThemeProvider>
         </FournisseurAuth>

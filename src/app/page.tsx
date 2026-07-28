@@ -14,6 +14,7 @@ import { Bouton, Carte, SqueletteGrille, Vide, cascade, enfantCascade, cx } from
 import { useSurvolCarte } from "@/hooks/useCoarsePointer";
 import { CATALOGUE_WIDGETS, CLASSES_TAILLE, RendreWidget } from "@/components/widgets";
 import { useApp, libelleSeance } from "@/lib/useApp";
+import { useAuth } from "@/lib/auth";
 import { majReglages, type TailleWidget, type TypeWidget, type Widget } from "@/lib/suivi";
 
 import {
@@ -158,6 +159,7 @@ function WidgetTriable({
 
 export default function Accueil() {
   const { chargement, fiche, seancesDuJour, serie, reglages, rafraichir } = useApp();
+  const { statutConnexion } = useAuth();
   const survolCarte = useSurvolCarte();
   const [edition, setEdition] = useState(false);
   const [actifId, setActifId] = useState<string | null>(null);
@@ -418,11 +420,20 @@ export default function Accueil() {
               </div>
 
               <div className="text-center">
-                <Link href="/profil">
-                  <Bouton taille="lg" className="shadow-soft hover:shadow-lift">
-                    Créer mon programme
-                  </Bouton>
-                </Link>
+                <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+                  <Link href="/profil">
+                    <Bouton taille="lg" className="shadow-soft hover:shadow-lift">
+                      Créer mon programme
+                    </Bouton>
+                  </Link>
+                  {statutConnexion === "invite" && (
+                    <Link href="/connexion">
+                      <Bouton taille="lg" variante="fantome">
+                        Déjà un compte ? Se connecter
+                      </Bouton>
+                    </Link>
+                  )}
+                </div>
                 <p className="mt-3 text-xs text-muted">Gratuit. 5 étapes. Résultat immédiat.</p>
               </div>
             </div>

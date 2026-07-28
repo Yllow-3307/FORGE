@@ -12,21 +12,31 @@
  */
 
 import {
-  createContext, useCallback, useContext, useEffect, useMemo, useState,
+  createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
-import { stockageDistant, supabase } from "./stockage";
+import { listerFiches, stockageDistant, supabase } from "./stockage";
+import { synchroniser } from "./synchro";
+
+export type StatutConnexion = "inconnu" | "invite" | "connecte";
 
 interface EtatAuth {
   /** Utilisateur connecté, ou null en mode local. */
   utilisateur: User | null;
   session: Session | null;
+  /** Chargement de la session Supabase en cours. */
   chargement: boolean;
+  /**
+   * État explicite de la session : `inconnu` ne dure que pendant la vérification
+   * initiale ; `invite` est ensuite un vrai choix de navigation sans compte.
+   */
+  statutConnexion: StatutConnexion;
   /** true si Supabase est configuré : conditionne l'affichage des écrans de compte. */
   authDisponible: boolean;
   connexion: (email: string, motDePasse: string) => Promise<{ erreur?: string }>;
   inscription: (email: string, motDePasse: string) => Promise<{ erreur?: string; confirmation?: boolean }>;
   lienMagique: (email: string) => Promise<{ erreur?: string }>;
+  connexionGoogle: () => Promise<{ erreur?: string }>;
   deconnexion: () => Promise<void>;
   motDePasseOublie: (email: string) => Promise<{ erreur?: string }>;
   changerMotDePasse: (nouveau: string) => Promise<{ erreur?: string }>;
@@ -38,24 +48,65 @@ const ContexteAuth = createContext<EtatAuth | null>(null);
 function traduire(message: string): string {
   const table: Record<string, string> = {
     "Invalid login credentials": "Adresse e-mail ou mot de passe incorrect.",
-    "Email not confirmed": "Adresse e-mail non confirmée : vérifiez votre boîte de réception.",
+    "Email not confirmed": "Adresse e-mail non confirmée : vérifie ta boîte de réception.",
     "User already registered": "Un compte existe déjà avec cette adresse.",
     "Password should be at least 6 characters":
       "Le mot de passe doit contenir au moins 6 caractères.",
     "Unable to validate email address: invalid format":
       "Le format de l'adresse e-mail est invalide.",
     "For security purposes, you can only request this after 60 seconds":
-      "Pour des raisons de sécurité, patientez une minute avant de réessayer.",
+      "Pour des raisons de sécurité, patiente une minute avant de réessayer.",
   };
   return table[message] ?? message;
+}
+
+/** Message exploitable quand le fournisseur OAuth n'est pas activé côté Supabase. */
+function traduireErreurGoogle(message: string): string {
+  const normalise = message.toLowerCase();
+  if (
+    normalise.includes("provider")
+    || normalise.includes("oauth")
+    || normalise.includes("google")
+  ) {
+    return "Configuration Google incomplète.";
+  }
+  return traduire(message);
 }
 
 export function FournisseurAuth({ children }: { children: React.ReactNode }) {
   const authDisponible = stockageDistant();
   const [session, setSession] = useState<Session | null>(null);
+  const derniereSessionSynchronisee = useRef<string | null>(null);
   // En mode local, il n'y a aucune session à récupérer : l'état initial est
   // déjà définitif, inutile de passer par un état « en chargement ».
   const [chargement, setChargement] = useState(authDisponible);
+
+  /**
+   * Une session qui vient d'arriver (notamment après le retour Google) doit
+   * récupérer le suivi cloud sans attendre une action dans les paramètres.
+   * Le fournisseur reste indépendant de l'écran courant : il retrouve d'abord
+   * la fiche active puis lance la synchronisation en arrière-plan.
+   */
+  const declencherRecuperationCloud = useCallback((nouvelleSession: Session | null) => {
+    const utilisateur = nouvelleSession?.user;
+    if (!utilisateur) {
+      derniereSessionSynchronisee.current = null;
+      return;
+    }
+    if (derniereSessionSynchronisee.current === utilisateur.id) return;
+    derniereSessionSynchronisee.current = utilisateur.id;
+
+    if (typeof navigator !== "undefined" && !navigator.onLine) return;
+
+    void listerFiches()
+      .then((fiches) => {
+        const fiche = fiches[0];
+        if (fiche) void synchroniser(fiche.id);
+      })
+      // La connexion reste réussie si la synchronisation est momentanément
+      // inaccessible : les données locales restent la source immédiate.
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const sb = supabase();
@@ -75,6 +126,7 @@ export function FournisseurAuth({ children }: { children: React.ReactNode }) {
       clearTimeout(secours);
       setSession(data.session);
       setChargement(false);
+      declencherRecuperationCloud(data.session);
     }).catch(() => {
       if (annule) return;
       clearTimeout(secours);
@@ -88,6 +140,7 @@ export function FournisseurAuth({ children }: { children: React.ReactNode }) {
         if (annule) return;
         setSession(s);
         setChargement(false);
+        declencherRecuperationCloud(s);
       });
     });
 
@@ -96,7 +149,7 @@ export function FournisseurAuth({ children }: { children: React.ReactNode }) {
       clearTimeout(secours);
       abonnement.subscription.unsubscribe();
     };
-  }, []);
+  }, [declencherRecuperationCloud]);
 
   const connexion = useCallback(async (email: string, motDePasse: string) => {
     const sb = supabase();
@@ -128,9 +181,26 @@ export function FournisseurAuth({ children }: { children: React.ReactNode }) {
     return error ? { erreur: traduire(error.message) } : {};
   }, []);
 
+  const connexionGoogle = useCallback(async () => {
+    const sb = supabase();
+    if (!sb) return { erreur: "Authentification indisponible en mode local." };
+    try {
+      const { error } = await sb.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: window.location.origin },
+      });
+      return error ? { erreur: traduireErreurGoogle(error.message) } : {};
+    } catch {
+      // Une configuration OAuth incomplète doit rester un retour utilisateur,
+      // jamais une exception qui laisse l'écran de connexion bloqué.
+      return { erreur: "Configuration Google incomplète." };
+    }
+  }, []);
+
   const deconnexion = useCallback(async () => {
     const sb = supabase();
     if (sb) await sb.auth.signOut();
+    derniereSessionSynchronisee.current = null;
     setSession(null);
   }, []);
 
@@ -150,21 +220,27 @@ export function FournisseurAuth({ children }: { children: React.ReactNode }) {
     return error ? { erreur: traduire(error.message) } : {};
   }, []);
 
+  const statutConnexion: StatutConnexion = chargement
+    ? "inconnu"
+    : session?.user ? "connecte" : "invite";
+
   const valeur = useMemo<EtatAuth>(
     () => ({
       utilisateur: session?.user ?? null,
       session,
       chargement,
+      statutConnexion,
       authDisponible,
       connexion,
       inscription,
       lienMagique,
+      connexionGoogle,
       deconnexion,
       motDePasseOublie,
       changerMotDePasse,
     }),
-    [session, chargement, authDisponible, connexion, inscription, lienMagique,
-      deconnexion, motDePasseOublie, changerMotDePasse],
+    [session, chargement, statutConnexion, authDisponible, connexion, inscription, lienMagique,
+      connexionGoogle, deconnexion, motDePasseOublie, changerMotDePasse],
   );
 
   return <ContexteAuth.Provider value={valeur}>{children}</ContexteAuth.Provider>;
