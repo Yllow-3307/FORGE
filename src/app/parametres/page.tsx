@@ -189,7 +189,7 @@ export default function PageParametres() {
       </nav>
 
       <Section titre="Compte" description="Sauvegarde et synchronisation de vos données." id="compte">
-        {authDisponible ? <BlocAuthentification /> : <BlocCompteLocal />}
+        {authDisponible ? <BlocAuthentification immersif={false} /> : <BlocCompteLocal />}
         <Carte className="space-y-4 p-5 sm:p-6">
           <div className="grid gap-4 sm:grid-cols-2">
             <Champ label="Nom d'utilisateur">
