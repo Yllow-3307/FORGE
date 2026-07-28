@@ -19,17 +19,35 @@ const defaut: EtatSynchro = {
   elementsEnAttente: 0,
 };
 
+// Cache : useSyncExternalStore exige une référence stable quand les
+// données n'ont pas changé. Sans ce cache, lireEtat() retourne un
+// nouvel objet à chaque appel → boucle infinie de re-renders (#185).
+let dernierEtat: EtatSynchro = defaut;
+let dernierBrut: string | null = null;
+
 function lireEtat(): EtatSynchro {
   if (typeof window === "undefined") return defaut;
   try {
     const s = localStorage.getItem(CLE_STATUT_SYNCHRO);
+    const fileBrut = localStorage.getItem("forge:file-attente") ?? "[]";
+
+    // Clé de cache : concaténation des deux sources. Si rien n'a changé,
+    // on retourne la même référence → React ne re-render pas.
+    const brut = `${s ?? ""}|${fileBrut}`;
+    if (brut === dernierBrut) return dernierEtat;
+
     const parsing = s ? JSON.parse(s) : {};
-    const file = JSON.parse(localStorage.getItem("forge:file-attente") ?? "[]");
-    return {
+    const file = JSON.parse(fileBrut);
+
+    dernierBrut = brut;
+    dernierEtat = {
       statut: parsing.statut ?? "synchronise",
-      derniereSynchro: parsing.derniereSynchro ?? localStorage.getItem("forge:derniere-synchro") ?? null,
+      derniereSynchro: parsing.derniereSynchro
+        ?? localStorage.getItem("forge:derniere-synchro")
+        ?? null,
       elementsEnAttente: Array.isArray(file) ? file.length : 0,
     };
+    return dernierEtat;
   } catch {
     return defaut;
   }
