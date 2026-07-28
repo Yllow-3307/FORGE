@@ -12,6 +12,7 @@
 import { createBrowserClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Profil, Programme } from "./moteur/types";
+import type { EntreeCharge } from "./suivi";
 
 const URL_SUPABASE = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const CLE_SUPABASE = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -58,10 +59,12 @@ export interface MesurePoids {
 const CLE_FICHES = "forge:fiches";
 const CLE_SEANCES = "forge:seances";
 const CLE_POIDS = "forge:poids";
+const CLE_CHARGES = "forge:charges";
+const CLE_FILE_ATTENTE = "forge:file-attente";
 
 /* ------------------------------------------------------- Utilitaires locaux */
 
-function lireLocal<T>(cle: string): T[] {
+export function lireLocal<T>(cle: string): T[] {
   if (typeof window === "undefined") return [];
   try {
     return JSON.parse(localStorage.getItem(cle) ?? "[]") as T[];
@@ -70,7 +73,7 @@ function lireLocal<T>(cle: string): T[] {
   }
 }
 
-function ecrireLocal<T>(cle: string, valeur: T[]): void {
+export function ecrireLocal<T>(cle: string, valeur: T[]): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(cle, JSON.stringify(valeur));
 }
@@ -86,7 +89,7 @@ function ecrireLocal<T>(cle: string, valeur: T[]): void {
  */
 const DELAI_RESEAU_MS = 2500;
 
-async function avecDelai<T>(promesse: PromiseLike<T>, secours: T): Promise<T> {
+export async function avecDelai<T>(promesse: PromiseLike<T>, secours: T): Promise<T> {
   let minuteur: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([
@@ -108,6 +111,295 @@ export function identifiant(): string {
     : `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+export async function obtenirUtilisateurId(): Promise<string | null> {
+  const sb = supabase();
+  if (!sb) return null;
+  try {
+    const { data } = await sb.auth.getSession();
+    return data.session?.user?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/* ------------------------------------------------------------- File d'attente */
+
+export interface ActionAttente {
+  id: string;
+  type: "fiches" | "seances" | "poids" | "charges";
+  action: "enregistrer" | "supprimer";
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  payload: any;
+}
+
+export function lireFileAttente(): ActionAttente[] {
+  if (typeof window === "undefined") return [];
+  try {
+    return JSON.parse(localStorage.getItem(CLE_FILE_ATTENTE) ?? "[]") as ActionAttente[];
+  } catch {
+    return [];
+  }
+}
+
+export function ecrireFileAttente(actions: ActionAttente[]): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(CLE_FILE_ATTENTE, JSON.stringify(actions));
+  window.dispatchEvent(new CustomEvent("forge:maj-statut-synchro"));
+}
+
+function ajouterAFileAttente(
+  type: "fiches" | "seances" | "poids" | "charges",
+  action: "enregistrer" | "supprimer",
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  payload: any,
+) {
+  const file = lireFileAttente();
+  const existe = file.some(
+    (a) => a.type === type && a.action === action && JSON.stringify(a.payload) === JSON.stringify(payload)
+  );
+  if (!existe) {
+    file.push({
+      id: identifiant(),
+      type,
+      action,
+      payload,
+    });
+    ecrireFileAttente(file);
+  }
+
+  const horsLigne = typeof navigator !== "undefined" && !navigator.onLine;
+  import("./statut-synchro").then(({ ecrireEtat }) => {
+    ecrireEtat({
+      statut: horsLigne ? "hors-ligne" : "en-attente",
+      elementsEnAttente: file.length,
+    });
+  }).catch(() => {});
+
+  planifierTraitementFile();
+}
+
+let minuteurFile: ReturnType<typeof setTimeout> | null = null;
+
+export function planifierTraitementFile() {
+  if (typeof window === "undefined") return;
+  if (minuteurFile) clearTimeout(minuteurFile);
+  minuteurFile = setTimeout(() => {
+    import("./synchro").then(({ declencherSynchroAutomatique }) => {
+      void declencherSynchroAutomatique();
+    }).catch(() => {});
+  }, 3000);
+}
+
+export async function tenterEcritureDistant(
+  type: "fiches" | "seances" | "poids" | "charges",
+  action: "enregistrer" | "supprimer",
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  payload: any,
+): Promise<void> {
+  const sb = supabase();
+  if (!sb) {
+    ajouterAFileAttente(type, action, payload);
+    return;
+  }
+
+  let succes = false;
+  try {
+    if (action === "enregistrer") {
+      if (type === "fiches") {
+        const { error } = await avecDelai(
+          sb.from("fiches").upsert({
+            id: payload.id,
+            nom: payload.nom,
+            profil: payload.profil,
+            cree_le: payload.creeLe,
+            maj_le: payload.majLe,
+          }),
+          { error: new Error("délai dépassé") } as never,
+        );
+        succes = !error;
+      } else if (type === "seances") {
+        const { error } = await avecDelai(
+          sb.from("seances_realisees").upsert({
+            id: payload.id,
+            fiche_id: payload.ficheId,
+            date: payload.date,
+            nom_seance: payload.nomSeance,
+            ressenti: payload.ressenti,
+            commentaire: payload.commentaire ?? null,
+          }),
+          { error: new Error("délai dépassé") } as never,
+        );
+        succes = !error;
+      } else if (type === "poids") {
+        const { error } = await avecDelai(
+          sb.from("mesures_poids").upsert({
+            id: payload.id,
+            fiche_id: payload.ficheId,
+            date: payload.date,
+            poids: payload.poids,
+          }),
+          { error: new Error("délai dépassé") } as never,
+        );
+        succes = !error;
+      } else if (type === "charges") {
+        const { error } = await avecDelai(
+          sb.from("historique_charges").upsert({
+            id: payload.id,
+            fiche_id: payload.ficheId,
+            exercice: payload.exercice,
+            charge: payload.charge,
+            reps: payload.reps,
+            sets: payload.series ?? null,
+            date: payload.date,
+            maj_le: payload.majLe ?? new Date().toISOString(),
+          }),
+          { error: new Error("délai dépassé") } as never,
+        );
+        succes = !error;
+      }
+    } else if (action === "supprimer") {
+      if (type === "fiches") {
+        const { error } = await avecDelai(
+          sb.from("fiches").delete().eq("id", payload),
+          { error: new Error("délai dépassé") } as never,
+        );
+        succes = !error;
+      } else if (type === "seances") {
+        const { error } = await avecDelai(
+          sb.from("seances_realisees").delete().eq("id", payload),
+          { error: new Error("délai dépassé") } as never,
+        );
+        succes = !error;
+      } else if (type === "poids") {
+        const { error } = await avecDelai(
+          sb.from("mesures_poids").delete().eq("id", payload),
+          { error: new Error("délai dépassé") } as never,
+        );
+        succes = !error;
+      } else if (type === "charges") {
+        const { error } = await avecDelai(
+          sb.from("historique_charges").delete().eq("id", payload),
+          { error: new Error("délai dépassé") } as never,
+        );
+        succes = !error;
+      }
+    }
+  } catch {
+    succes = false;
+  }
+
+  if (!succes) {
+    ajouterAFileAttente(type, action, payload);
+  }
+}
+
+export async function viderFileAttente(): Promise<void> {
+  const sb = supabase();
+  if (!sb) return;
+
+  const session = await sb.auth.getSession();
+  if (!session.data.session?.user) return;
+
+  const actions = lireFileAttente();
+  if (actions.length === 0) return;
+
+  const restent: ActionAttente[] = [];
+
+  for (const action of actions) {
+    let succes = false;
+    try {
+      if (action.action === "enregistrer") {
+        if (action.type === "fiches") {
+          const { error } = await avecDelai(
+            sb.from("fiches").upsert({
+              id: action.payload.id,
+              nom: action.payload.nom,
+              profil: action.payload.profil,
+              cree_le: action.payload.creeLe,
+              maj_le: action.payload.majLe,
+            }),
+            { error: new Error("délai dépassé") } as never,
+          );
+          succes = !error;
+        } else if (action.type === "seances") {
+          const { error } = await avecDelai(
+            sb.from("seances_realisees").upsert({
+              id: action.payload.id,
+              fiche_id: action.payload.ficheId,
+              date: action.payload.date,
+              nom_seance: action.payload.nomSeance,
+              ressenti: action.payload.ressenti,
+              commentaire: action.payload.commentaire ?? null,
+            }),
+            { error: new Error("délai dépassé") } as never,
+          );
+          succes = !error;
+        } else if (action.type === "poids") {
+          const { error } = await avecDelai(
+            sb.from("mesures_poids").upsert({
+              id: action.payload.id,
+              fiche_id: action.payload.ficheId,
+              date: action.payload.date,
+              poids: action.payload.poids,
+            }),
+            { error: new Error("délai dépassé") } as never,
+          );
+          succes = !error;
+        } else if (action.type === "charges") {
+          const { error } = await avecDelai(
+            sb.from("historique_charges").upsert({
+              id: action.payload.id,
+              fiche_id: action.payload.ficheId,
+              exercice: action.payload.exercice,
+              charge: action.payload.charge,
+              reps: action.payload.reps,
+              sets: action.payload.series ?? null,
+              date: action.payload.date,
+              maj_le: action.payload.majLe ?? new Date().toISOString(),
+            }),
+            { error: new Error("délai dépassé") } as never,
+          );
+          succes = !error;
+        }
+      } else if (action.action === "supprimer") {
+        if (action.type === "fiches") {
+          const { error } = await avecDelai(
+            sb.from("fiches").delete().eq("id", action.payload),
+            { error: new Error("délai dépassé") } as never,
+          );
+          succes = !error;
+        } else if (action.type === "seances") {
+          const { error } = await avecDelai(
+            sb.from("seances_realisees").delete().eq("id", action.payload),
+            { error: new Error("délai dépassé") } as never,
+          );
+          succes = !error;
+        } else if (action.type === "poids") {
+          const { error } = await avecDelai(
+            sb.from("mesures_poids").delete().eq("id", action.payload),
+            { error: new Error("délai dépassé") } as never,
+          );
+          succes = !error;
+        } else if (action.type === "charges") {
+          const { error } = await avecDelai(
+            sb.from("historique_charges").delete().eq("id", action.payload),
+            { error: new Error("délai dépassé") } as never,
+          );
+          succes = !error;
+        }
+      }
+    } catch {
+      succes = false;
+    }
+
+    if (!succes) {
+      restent.push(action);
+    }
+  }
+
+  ecrireFileAttente(restent);
+}
+
 /* ------------------------------------------------------------------ Fiches */
 
 export async function listerFiches(): Promise<FicheClient[]> {
@@ -123,7 +415,6 @@ export async function listerFiches(): Promise<FicheClient[]> {
         creeLe: r.cree_le, majLe: r.maj_le,
       }));
     }
-    // En cas d'erreur réseau, on retombe sur le cache local plutôt que d'échouer.
   }
   return lireLocal<FicheClient>(CLE_FICHES)
     .sort((a, b) => (a.majLe < b.majLe ? 1 : -1));
@@ -136,46 +427,46 @@ export async function lireFiche(id: string): Promise<FicheClient | null> {
 
 export async function enregistrerFiche(profil: Profil, id?: string): Promise<FicheClient> {
   const maintenant = new Date().toISOString();
+  const locales = lireLocal<FicheClient>(CLE_FICHES);
+  const ficheId = id ?? identifiant();
+  const existante = locales.find((f) => f.id === ficheId);
   const fiche: FicheClient = {
-    id: id ?? identifiant(),
+    id: ficheId,
     nom: profil.nom || "Client",
     profil,
-    creeLe: maintenant,
+    creeLe: existante?.creeLe ?? maintenant,
     majLe: maintenant,
   };
 
-  const sb = supabase();
-  if (sb) {
-    const { data: session } = await avecDelai(
-      sb.auth.getUser(),
-      { data: { user: null } } as never,
-    );
-    const { error } = await avecDelai(sb.from("fiches").upsert({
-      id: fiche.id,
-      nom: fiche.nom,
-      profil: fiche.profil,
-      cree_le: fiche.creeLe,
-      maj_le: fiche.majLe,
-      utilisateur_id: session.user?.id ?? null,
-    }), { error: new Error("délai dépassé") } as never);
-    if (!error) return fiche;
-  }
-
-  const locales = lireLocal<FicheClient>(CLE_FICHES);
+  // 1. Écrire localement
   const i = locales.findIndex((f) => f.id === fiche.id);
-  if (i >= 0) locales[i] = { ...fiche, creeLe: locales[i].creeLe };
+  if (i >= 0) locales[i] = fiche;
   else locales.push(fiche);
   ecrireLocal(CLE_FICHES, locales);
+  window.dispatchEvent(new CustomEvent("forge:maj", { detail: CLE_FICHES }));
+
+  // 2. Écrire distant (fire-and-forget)
+  obtenirUtilisateurId().then((userId) => {
+    if (userId) {
+      void tenterEcritureDistant("fiches", "enregistrer", fiche);
+    }
+  });
+
   return fiche;
 }
 
 export async function supprimerFiche(id: string): Promise<void> {
-  const sb = supabase();
-  if (sb) {
-    const { error } = await sb.from("fiches").delete().eq("id", id);
-    if (!error) return;
-  }
-  ecrireLocal(CLE_FICHES, lireLocal<FicheClient>(CLE_FICHES).filter((f) => f.id !== id));
+  // 1. Écrire localement
+  const locales = lireLocal<FicheClient>(CLE_FICHES).filter((f) => f.id !== id);
+  ecrireLocal(CLE_FICHES, locales);
+  window.dispatchEvent(new CustomEvent("forge:maj", { detail: CLE_FICHES }));
+
+  // 2. Écrire distant (fire-and-forget)
+  obtenirUtilisateurId().then((userId) => {
+    if (userId) {
+      void tenterEcritureDistant("fiches", "supprimer", id);
+    }
+  });
 }
 
 /* ------------------------------------------------------------------ Suivi */
@@ -202,28 +493,35 @@ export async function listerSeances(ficheId: string): Promise<SeanceRealisee[]> 
 
 export async function enregistrerSeance(s: Omit<SeanceRealisee, "id">): Promise<SeanceRealisee> {
   const complete: SeanceRealisee = { ...s, id: identifiant() };
-  const sb = supabase();
-  if (sb) {
-    const { error } = await sb.from("seances_realisees").insert({
-      id: complete.id, fiche_id: complete.ficheId, date: complete.date,
-      nom_seance: complete.nomSeance, ressenti: complete.ressenti,
-      commentaire: complete.commentaire ?? null,
-    });
-    if (!error) return complete;
-  }
+
+  // 1. Écrire localement
   const locales = lireLocal<SeanceRealisee>(CLE_SEANCES);
   locales.push(complete);
   ecrireLocal(CLE_SEANCES, locales);
+  window.dispatchEvent(new CustomEvent("forge:maj", { detail: CLE_SEANCES }));
+
+  // 2. Écrire distant (fire-and-forget)
+  obtenirUtilisateurId().then((userId) => {
+    if (userId) {
+      void tenterEcritureDistant("seances", "enregistrer", complete);
+    }
+  });
+
   return complete;
 }
 
 export async function supprimerSeance(id: string): Promise<void> {
-  const sb = supabase();
-  if (sb) {
-    const { error } = await sb.from("seances_realisees").delete().eq("id", id);
-    if (!error) return;
-  }
-  ecrireLocal(CLE_SEANCES, lireLocal<SeanceRealisee>(CLE_SEANCES).filter((s) => s.id !== id));
+  // 1. Écrire localement
+  const locales = lireLocal<SeanceRealisee>(CLE_SEANCES).filter((s) => s.id !== id);
+  ecrireLocal(CLE_SEANCES, locales);
+  window.dispatchEvent(new CustomEvent("forge:maj", { detail: CLE_SEANCES }));
+
+  // 2. Écrire distant (fire-and-forget)
+  obtenirUtilisateurId().then((userId) => {
+    if (userId) {
+      void tenterEcritureDistant("seances", "supprimer", id);
+    }
+  });
 }
 
 export async function listerPoids(ficheId: string): Promise<MesurePoids[]> {
@@ -245,32 +543,102 @@ export async function listerPoids(ficheId: string): Promise<MesurePoids[]> {
 
 export async function enregistrerPoids(m: Omit<MesurePoids, "id">): Promise<MesurePoids> {
   const complete: MesurePoids = { ...m, id: identifiant() };
-  const sb = supabase();
-  if (sb) {
-    const { error } = await sb.from("mesures_poids").insert({
-      id: complete.id, fiche_id: complete.ficheId, date: complete.date, poids: complete.poids,
-    });
-    if (!error) return complete;
-  }
+
+  // 1. Écrire localement
   const locales = lireLocal<MesurePoids>(CLE_POIDS);
-  // Une seule pesée par jour : la plus récente remplace la précédente.
   const i = locales.findIndex((x) => x.ficheId === m.ficheId && x.date === m.date);
   if (i >= 0) locales[i] = complete;
   else locales.push(complete);
   ecrireLocal(CLE_POIDS, locales);
+  window.dispatchEvent(new CustomEvent("forge:maj", { detail: CLE_POIDS }));
+
+  // 2. Écrire distant (fire-and-forget)
+  obtenirUtilisateurId().then((userId) => {
+    if (userId) {
+      void tenterEcritureDistant("poids", "enregistrer", complete);
+    }
+  });
+
   return complete;
 }
 
 export async function supprimerPoids(id: string): Promise<void> {
+  // 1. Écrire localement
+  const locales = lireLocal<MesurePoids>(CLE_POIDS).filter((m) => m.id !== id);
+  ecrireLocal(CLE_POIDS, locales);
+  window.dispatchEvent(new CustomEvent("forge:maj", { detail: CLE_POIDS }));
+
+  // 2. Écrire distant (fire-and-forget)
+  obtenirUtilisateurId().then((userId) => {
+    if (userId) {
+      void tenterEcritureDistant("poids", "supprimer", id);
+    }
+  });
+}
+
+/* ------------------------------------------------------------- Charges */
+
+export async function listerCharges(ficheId: string): Promise<EntreeCharge[]> {
   const sb = supabase();
   if (sb) {
-    const { error } = await avecDelai(
-      sb.from("mesures_poids").delete().eq("id", id),
-      { error: new Error("délai dépassé") } as never,
+    const { data, error } = await avecDelai(
+      sb.from("historique_charges").select("*").eq("fiche_id", ficheId)
+        .order("date", { ascending: false }),
+      { data: null, error: new Error("délai dépassé") } as never,
     );
-    if (!error) return;
+    if (!error && data) {
+      return data.map((r) => ({
+        id: r.id,
+        ficheId: r.fiche_id,
+        date: r.date,
+        exercice: r.exercice,
+        charge: Number(r.charge),
+        reps: r.reps,
+        series: r.sets ?? undefined,
+        majLe: r.maj_le,
+      }));
+    }
   }
-  ecrireLocal(CLE_POIDS, lireLocal<MesurePoids>(CLE_POIDS).filter((m) => m.id !== id));
+  return lireLocal<EntreeCharge>(CLE_CHARGES)
+    .filter((c) => !c.ficheId || c.ficheId === ficheId)
+    .sort((a, b) => b.date.localeCompare(a.date));
+}
+
+export async function enregistrerCharge(e: Omit<EntreeCharge, "id"> & { ficheId: string }): Promise<EntreeCharge> {
+  const complete: EntreeCharge = {
+    ...e,
+    id: identifiant(),
+    majLe: new Date().toISOString(),
+  };
+
+  const locales = lireLocal<EntreeCharge>(CLE_CHARGES);
+  const i = locales.findIndex((x) => x.ficheId === complete.ficheId && x.exercice === complete.exercice && x.date === complete.date);
+  if (i >= 0) locales[i] = complete;
+  else locales.push(complete);
+  ecrireLocal(CLE_CHARGES, locales);
+
+  window.dispatchEvent(new CustomEvent("forge:maj", { detail: CLE_CHARGES }));
+
+  obtenirUtilisateurId().then((userId) => {
+    if (userId) {
+      void tenterEcritureDistant("charges", "enregistrer", complete);
+    }
+  });
+
+  return complete;
+}
+
+export async function supprimerCharge(id: string): Promise<void> {
+  const locales = lireLocal<EntreeCharge>(CLE_CHARGES).filter((c) => c.id !== id);
+  ecrireLocal(CLE_CHARGES, locales);
+
+  window.dispatchEvent(new CustomEvent("forge:maj", { detail: CLE_CHARGES }));
+
+  obtenirUtilisateurId().then((userId) => {
+    if (userId) {
+      void tenterEcritureDistant("charges", "supprimer", id);
+    }
+  });
 }
 
 /* ------------------------------------------------------- Export et import */
@@ -283,20 +651,23 @@ export function exporterTout(): string {
       fiches: lireLocal<FicheClient>(CLE_FICHES),
       seances: lireLocal<SeanceRealisee>(CLE_SEANCES),
       poids: lireLocal<MesurePoids>(CLE_POIDS),
+      charges: lireLocal<EntreeCharge>(CLE_CHARGES),
     },
     null, 2,
   );
 }
 
-export function importerTout(json: string): { fiches: number; seances: number; poids: number } {
+export function importerTout(json: string): { fiches: number; seances: number; poids: number; charges: number } {
   const data = JSON.parse(json);
   if (data.fiches) ecrireLocal(CLE_FICHES, data.fiches);
   if (data.seances) ecrireLocal(CLE_SEANCES, data.seances);
   if (data.poids) ecrireLocal(CLE_POIDS, data.poids);
+  if (data.charges) ecrireLocal(CLE_CHARGES, data.charges);
   return {
     fiches: data.fiches?.length ?? 0,
     seances: data.seances?.length ?? 0,
     poids: data.poids?.length ?? 0,
+    charges: data.charges?.length ?? 0,
   };
 }
 
