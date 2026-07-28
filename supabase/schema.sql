@@ -191,3 +191,39 @@ create policy "acces aux skills de ses fiches" on public.progres_skills
       where f.id = fiche_id and f.utilisateur_id = auth.uid()
     )
   );
+
+-- ============================================================================
+-- Historique des charges (poids utilisé par exercice et par jour)
+--
+-- Permet de synchroniser entre appareils les charges saisies pendant les
+-- séances. Sans cette table, les charges restent en localStorage uniquement.
+-- ============================================================================
+
+create table if not exists public.historique_charges (
+  id        uuid primary key default gen_random_uuid(),
+  fiche_id  uuid not null references public.fiches(id) on delete cascade,
+  exercice  text not null,
+  charge    numeric(6,2) not null,
+  reps      smallint,
+  sets      smallint,
+  date      date not null,
+  -- Horodatage de la dernière modification : même convention que journal.
+  maj_le    timestamptz not null default now(),
+  -- Une seule entrée par exercice et par jour pour une fiche donnée.
+  unique (fiche_id, exercice, date)
+);
+
+create index if not exists charges_fiche_idx
+  on public.historique_charges (fiche_id, date desc);
+
+alter table public.historique_charges enable row level security;
+
+-- --- Charges : accès conditionné à la propriété de la fiche parente ---
+drop policy if exists "acces aux charges de ses fiches" on public.historique_charges;
+create policy "acces aux charges de ses fiches" on public.historique_charges
+  for all using (
+    exists (
+      select 1 from public.fiches f
+      where f.id = fiche_id and f.utilisateur_id = auth.uid()
+    )
+  );
