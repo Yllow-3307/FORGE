@@ -15,6 +15,8 @@ import { useState, useRef, useEffect } from "react";
 import { ThemeToggle } from "./theme";
 import { MarqueForge } from "./logo";
 import { cx } from "./ui";
+import { useAuth } from "@/lib/auth";
+import { useStatutSynchro } from "@/lib/statut-synchro";
 import type { LucideIcon } from "lucide-react";
 import {
   House,
@@ -28,6 +30,9 @@ import {
   Menu,
   X,
   ChevronLeft,
+  Cloud,
+  CloudOff,
+  RefreshCw,
 } from "lucide-react";
 
 interface LienNavigation {
@@ -67,6 +72,155 @@ const TITRES: Record<string, string> = {
   "/mesures": "Mesures",
   "/parametres": "Réglages",
 };
+
+function tempsRelatif(iso: string | null): string {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const diffMinutes = Math.floor((Date.now() - date.getTime()) / 60000);
+  if (diffMinutes < 1) return "à l'instant";
+  if (diffMinutes < 60) return `il y a ${diffMinutes} min`;
+
+  const diffHeures = Math.floor(diffMinutes / 60);
+  if (diffHeures < 24) return `il y a ${diffHeures} h`;
+
+  const diffJours = Math.floor(diffHeures / 24);
+  return `il y a ${diffJours} j`;
+}
+
+function BadgeSynchro() {
+  const { statutConnexion, authDisponible } = useAuth();
+  const { statut, derniereSynchro, elementsEnAttente } = useStatutSynchro();
+  const [tooltipOuvert, setTooltipOuvert] = useState(false);
+  const timeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current !== null) {
+        window.clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  if (!authDisponible || statutConnexion !== "connecte") return null;
+
+  const icones: Record<"synchronise" | "en-cours" | "hors-ligne" | "en-attente", LucideIcon> = {
+    synchronise: Cloud,
+    "en-cours": RefreshCw,
+    "hors-ligne": CloudOff,
+    "en-attente": Cloud,
+  };
+
+  const couleurs: Record<"synchronise" | "en-cours" | "hors-ligne" | "en-attente", string> = {
+    synchronise: "text-[var(--eau)]",
+    "en-cours": "text-[var(--accent-vif)]",
+    "hors-ligne": "text-[var(--text-faint)]",
+    "en-attente": "text-[var(--warn)]",
+  };
+
+  const Icone = icones[statut];
+  const temps = tempsRelatif(derniereSynchro);
+  const label = {
+    synchronise: "Synchronisation synchronisée",
+    "en-cours": "Synchronisation en cours",
+    "hors-ligne": "Synchronisation hors ligne",
+    "en-attente": "Synchronisation en attente",
+  }[statut];
+
+  const texteTooltip = (() => {
+    switch (statut) {
+      case "synchronise":
+        return temps ? `Synchronisé · ${temps}` : "Synchronisé";
+      case "en-cours":
+        return "Synchronisation en cours…";
+      case "hors-ligne":
+        return "Hors ligne — données locales";
+      case "en-attente":
+        return elementsEnAttente > 0
+          ? `${elementsEnAttente} ${elementsEnAttente > 1 ? "éléments" : "élément"} en attente de synchronisation`
+          : "Aucun élément en attente de synchronisation";
+      default:
+        return "Synchronisation";
+    }
+  })();
+
+  const ouvrirTooltip = () => {
+    setTooltipOuvert(true);
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      if (timeoutRef.current !== null) {
+        window.clearTimeout(timeoutRef.current);
+      }
+      timeoutRef.current = window.setTimeout(() => setTooltipOuvert(false), 2000);
+    }
+  };
+
+  const fermerTooltip = () => {
+    if (timeoutRef.current !== null) {
+      window.clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    setTooltipOuvert(false);
+  };
+
+  const basculerTooltip = () => {
+    setTooltipOuvert((ouvert) => {
+      if (ouvert) {
+        fermerTooltip();
+        return false;
+      }
+      ouvrirTooltip();
+      return true;
+    });
+  };
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        aria-label={label}
+        onClick={basculerTooltip}
+        onMouseEnter={ouvrirTooltip}
+        onMouseLeave={fermerTooltip}
+        onFocus={ouvrirTooltip}
+        onBlur={fermerTooltip}
+        className="relative grid h-9 w-9 place-items-center rounded-full bg-[var(--surface-2)] transition-colors hover:bg-[var(--surface)]"
+      >
+        <Icone
+          size={18}
+          className={cx(
+            couleurs[statut],
+            statut === "en-cours" && "animate-spin",
+            statut === "en-attente" && "animate-pulse",
+          )}
+        />
+        {elementsEnAttente > 0 && (
+          <span
+            aria-label={`${elementsEnAttente} éléments en attente`}
+            className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--accent)] px-0.5 text-[0.65rem] font-bold text-white"
+          >
+            {elementsEnAttente}
+          </span>
+        )}
+
+        <AnimatePresence>
+          {tooltipOuvert && (
+            <motion.div
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 4 }}
+              transition={{ duration: 0.15 }}
+              role="status"
+              className="glass-strong absolute right-0 top-full z-50 mt-2 whitespace-nowrap rounded-xl px-3 py-1.5 text-xs text-ink shadow-soft"
+            >
+              {texteTooltip}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </button>
+    </div>
+  );
+}
 
 export function Navigation() {
   const chemin = usePathname();
@@ -149,6 +303,8 @@ export function Navigation() {
             })}
           </div>
 
+          <BadgeSynchro />
+
           <Link
             href="/parametres#compte"
             aria-label="Compte et réglages"
@@ -204,8 +360,11 @@ export function Navigation() {
           )}
           {estProfonde && titre === "" && <div className="flex-1" aria-hidden />}
 
-          {/* Zone droite : bascule de thème, toujours présente. */}
-          <ThemeToggle />
+          {/* Zone droite : badge de synchro et bascule de thème. */}
+          <div className="flex items-center gap-1.5">
+            <BadgeSynchro />
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
