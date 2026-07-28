@@ -11,9 +11,11 @@
 import { usePathname } from "next/navigation";
 import { Navigation } from "@/components/navigation";
 import { GestionPWA } from "@/components/pwa";
+import { useSynchronisationNotifier } from "@/lib/statut-synchro";
 
 export function CadreApplication({ children }: { children: React.ReactNode }) {
   const chemin = usePathname();
+  useSynchronisationNotifier();
 
   if (chemin === "/connexion") {
     return <main className="min-h-[100dvh] w-full">{children}</main>;

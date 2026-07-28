@@ -34,6 +34,11 @@ export interface JournalJour {
   energie?: 1 | 2 | 3 | 4 | 5;
   /** Dernière modification locale : arbitre les conflits de synchronisation. */
   majLe?: string;
+  cotes_maj?: {
+    repas?: string;
+    hydratationMl?: string;
+    seanceFaite?: string;
+  };
 }
 
 export interface ProgresSkill {
@@ -154,9 +159,16 @@ export function majJour(date: string, maj: Partial<JournalJour>): JournalJour {
   const journal = lireJournal();
   const i = journal.findIndex((j) => j.date === date);
   const base = i >= 0 ? journal[i] : { date, repas: [], hydratationMl: 0, seanceFaite: false };
-  // L'horodatage est posé à chaque écriture : sans lui, la synchronisation
-  // ne saurait pas quelle version est la plus récente.
-  const suivant = { ...base, ...maj, majLe: new Date().toISOString() };
+  const maintenant = new Date().toISOString();
+
+  const cotes_maj = { ...(base.cotes_maj || {}) };
+  for (const cle of Object.keys(maj)) {
+    if (cle === "repas" || cle === "hydratationMl" || cle === "seanceFaite") {
+      cotes_maj[cle] = maintenant;
+    }
+  }
+
+  const suivant = { ...base, ...maj, majLe: maintenant, cotes_maj };
   if (i >= 0) journal[i] = suivant;
   else journal.push(suivant);
   ecrire(CLE_JOURNAL, journal);
@@ -451,6 +463,18 @@ export interface EntreeCharge {
   reps: number;        // répétitions effectuées sur la meilleure série
   series?: number;
   note?: string;
+  ficheId?: string;
+  majLe?: string;
+}
+
+export function activeFicheId(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const fiches = JSON.parse(localStorage.getItem("forge:fiches") ?? "[]");
+    return fiches[0]?.id ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export function lireCharges(): EntreeCharge[] {
@@ -472,16 +496,46 @@ export function derniereCharge(exercice: string): EntreeCharge | null {
 }
 
 export function enregistrerCharge(e: Omit<EntreeCharge, "id">): EntreeCharge {
-  const entree: EntreeCharge = { ...e, id: id() };
+  const fId = activeFicheId() ?? "default-fiche";
+  const entree: EntreeCharge = {
+    ...e,
+    id: id(),
+    ficheId: fId,
+    majLe: new Date().toISOString(),
+  };
+
   const toutes = lireCharges();
-  toutes.push(entree);
+  const i = toutes.findIndex(
+    (x) => x.ficheId === entree.ficheId && x.exercice === entree.exercice && x.date === entree.date
+  );
+  if (i >= 0) toutes[i] = entree;
+  else toutes.push(entree);
   ecrire(CLE_CHARGES, toutes);
+
+  // Trigger background cloud save if possible
+  import("./stockage").then(({ tenterEcritureDistant, obtenirUtilisateurId }) => {
+    void obtenirUtilisateurId().then((userId) => {
+      if (userId) {
+        void tenterEcritureDistant("charges", "enregistrer", entree);
+      }
+    });
+  }).catch(() => {});
+
   return entree;
 }
 
 export function supprimerCharge(idCharge: string): void {
   const toutes = lireCharges().filter((e) => e.id !== idCharge);
   ecrire(CLE_CHARGES, toutes);
+
+  // Trigger background cloud delete if possible
+  import("./stockage").then(({ tenterEcritureDistant, obtenirUtilisateurId }) => {
+    void obtenirUtilisateurId().then((userId) => {
+      if (userId) {
+        void tenterEcritureDistant("charges", "supprimer", idCharge);
+      }
+    });
+  }).catch(() => {});
 }
 
 /** Volume = charge × reps × series (series ?? 1). Sert de comparateur entre séances. */
